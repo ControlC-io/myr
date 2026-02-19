@@ -1,7 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authClient } from '../lib/authClient';
-import { useAuth } from '../contexts/AuthContext';
+import { authClient, useAuth } from '@shared/auth';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -12,7 +11,7 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { checkSession } = useAuth();
+  const { checkSession, fetchJwtToken } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -21,72 +20,47 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
     setLoading(true);
 
     try {
-      const response = await authClient.signIn.email(
-        { email, password },
-        {
-          onSuccess(context) {
-            // If 2FA is required, redirect to challenge page
-            if (context.data?.twoFactorRedirect || context.data?.requiresTwoFactor) {
-              navigate('/auth/2fa-challenge');
-              return;
-            }
-            // Normal login success
-            checkSession();
-            if (onSuccess) {
-              onSuccess();
-            }
-            setLoading(false);
-          },
-          onError(context) {
-            // Check if error indicates 2FA is required
-            const errorMessage = context.error?.message || '';
-            if (errorMessage.includes('two-factor') || errorMessage.includes('2FA') || errorMessage.includes('TOTP')) {
-              navigate('/auth/2fa-challenge');
-              return;
-            }
-            setError(errorMessage || 'Login failed');
-            setLoading(false);
-          }
-        }
-      );
+      const response = await authClient.signIn.email({ email, password });
 
-      // Check response after the callbacks
-      // Better Auth may return twoFactorRedirect in different formats
-      if (response.data?.twoFactorRedirect || response.data?.requiresTwoFactor) {
+      // Better Auth TOTP 2FA redirect
+      if (
+        response.data?.twoFactorRedirect ||
+        (response.error?.message ?? '').match(/two-factor|2FA|TOTP/i)
+      ) {
         navigate('/auth/2fa-challenge');
         setLoading(false);
         return;
       }
 
-      // Check if response indicates 2FA is needed via error
       if (response.error) {
-        const errorMessage = response.error.message || '';
-        if (errorMessage.includes('two-factor') || errorMessage.includes('2FA') || errorMessage.includes('TOTP')) {
-          navigate('/auth/2fa-challenge');
+        setError(response.error.message || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // Session established — now obtain the JWT (handles email 2FA gate)
+      try {
+        const gotToken = await fetchJwtToken(email, password);
+        if (!gotToken) {
+          // Email OTP sent — redirect to verification page
+          navigate('/auth/email-otp');
           setLoading(false);
           return;
         }
-        setError(errorMessage || 'Login failed');
-        setLoading(false);
-        return;
+      } catch {
+        // Non-fatal: JWT fetch failure should not block session login
       }
 
-      // If we get here and there's no error, login was successful
-      if (response.data && !response.error) {
-        await checkSession();
-        if (onSuccess) {
-          onSuccess();
-        }
-        setLoading(false);
-      }
-    } catch (err: any) {
-      const errorMessage = err.message || 'Login failed';
-      // Check if error indicates 2FA is required
-      if (errorMessage.includes('two-factor') || errorMessage.includes('2FA') || errorMessage.includes('TOTP')) {
+      await checkSession();
+      onSuccess?.();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed';
+      if (message.match(/two-factor|2FA|TOTP/i)) {
         navigate('/auth/2fa-challenge');
       } else {
-        setError(errorMessage);
+        setError(message);
       }
+    } finally {
       setLoading(false);
     }
   };

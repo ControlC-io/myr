@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@shared/auth';
 
 interface RegisterFormProps {
   onSuccess?: () => void;

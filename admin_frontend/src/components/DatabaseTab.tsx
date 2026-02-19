@@ -103,9 +103,7 @@ const DatabaseTab = () => {
   const getCount = (tableName: string): number =>
     tableCounts?.tables[tableName]?.count ?? 0;
 
-  const columnKeys = tableData.length > 0
-    ? Object.keys(tableData[0]).filter(k => typeof tableData[0][k] !== 'object' || tableData[0][k] === null || Array.isArray(tableData[0][k]))
-    : [];
+  const columnKeys = tableData.length > 0 ? Object.keys(tableData[0]) : [];
 
   const handleRefresh = () => {
     fetchCounts();

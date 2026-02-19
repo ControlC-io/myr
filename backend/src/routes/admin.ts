@@ -4,7 +4,29 @@ import { createAuditLog } from '../middleware/auditLog';
 
 const router = express.Router();
 
-// GET /api/admin/settings - Fetch all system settings
+/**
+ * @swagger
+ * /api/admin/settings:
+ *   get:
+ *     summary: List all system settings
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of system settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/SystemSetting'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.get('/settings', async (req: Request, res: Response) => {
   try {
     const settings = await prisma.systemSettings.findMany({
@@ -20,7 +42,47 @@ router.get('/settings', async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /api/admin/settings/:key - Update a specific setting
+/**
+ * @swagger
+ * /api/admin/settings/{key}:
+ *   patch:
+ *     summary: Update a specific system setting
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: auth_email_password_enabled
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isEnabled:
+ *                 type: boolean
+ *               providerConfig:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Updated setting
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SystemSetting'
+ *       404:
+ *         description: Setting not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.patch('/settings/:key', async (req: Request, res: Response) => {
   try {
     const { key } = req.params;
@@ -72,7 +134,33 @@ router.patch('/settings/:key', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/admin/database - Fetch database table overview or specific table data
+/**
+ * @swagger
+ * /api/admin/database:
+ *   get:
+ *     summary: Fetch database table overview or specific table data
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: table
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [users, accounts, sessions, system_settings, two_factor, audit_logs]
+ *         description: When provided, returns all rows for that table (sensitive fields redacted)
+ *     responses:
+ *       200:
+ *         description: Table row counts or specific table data
+ *       400:
+ *         description: Invalid table name
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.get('/database', async (req: Request, res: Response) => {
   try {
     const { table } = req.query;
@@ -177,7 +265,29 @@ router.get('/database', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/admin/logs - Fetch recent audit logs
+/**
+ * @swagger
+ * /api/admin/logs:
+ *   get:
+ *     summary: Fetch the 100 most recent audit logs
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of audit log entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/AuditLog'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.get('/logs', async (req: Request, res: Response) => {
   try {
     const logs = await prisma.auditLog.findMany({

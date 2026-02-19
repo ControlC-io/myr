@@ -2,7 +2,8 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "windows", "linux-musl-arm64-openssl-3.0.x"]
+  // Generate binaries for local Windows dev and Docker's linux-musl (Alpine)
+  binaryTargets = ["windows", "linux-musl"]
 }
 
 datasource db {
@@ -26,6 +27,7 @@ model User {
   accounts          Account[]
   sessions          Session[]
   twoFactor         TwoFactor?
+  userRoles         UserRole[]
   
   @@map("users")
 }
@@ -101,6 +103,49 @@ model Verification {
   updatedAt  DateTime @updatedAt
   
   @@map("verification")
+}
+
+// Role model for RBAC
+model Role {
+  id               String               @id @default(uuid())
+  name             String               @unique
+  description      String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  userRoles        UserRole[]
+  endpointMappings RoleEndpointMapping[]
+
+  @@map("roles")
+}
+
+// Junction table: User ↔ Role (many-to-many)
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// Maps a role to a specific endpoint + HTTP method
+model RoleEndpointMapping {
+  id        String   @id @default(uuid())
+  roleId    String
+  endpoint  String   // e.g. "/api/admin/settings"
+  method    String   // "GET" | "POST" | "PATCH" | "PUT" | "DELETE" | "*"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, endpoint, method])
+  @@map("role_endpoint_mappings")
 }
 
 // Audit Log model for tracking sensitive actions

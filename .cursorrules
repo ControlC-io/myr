@@ -20,3 +20,4 @@ You are an Expert System Architect and Full Stack Developer specialized in Secur
 * Prefer functional programming patterns.
 * Use `const` over `let`.
 * Ensure all async operations are properly handled with `try catch` blocks.
+* Always code in english

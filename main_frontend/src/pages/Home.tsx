@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@shared/auth';
 
 type ServiceStatus = 'ok' | 'error' | 'checking';
 
@@ -237,7 +237,7 @@ const Home = () => {
 
         {/* ── Quick access (only if logged in) ── */}
         {!loading && user && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <Link
               to="/dashboard"
               className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-blue-200 hover:shadow-md transition-all group"
@@ -250,20 +250,6 @@ const Home = () => {
               <div>
                 <p className="text-sm font-semibold text-gray-800">Dashboard</p>
                 <p className="text-xs text-gray-400">User panel</p>
-              </div>
-            </Link>
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-purple-200 hover:shadow-md transition-all group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Administration</p>
-                <p className="text-xs text-gray-400">Admin panel</p>
               </div>
             </Link>
           </div>

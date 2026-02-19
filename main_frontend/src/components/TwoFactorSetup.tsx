@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@shared/auth';
 
 interface TwoFactorSetupProps {
   onComplete?: () => void;

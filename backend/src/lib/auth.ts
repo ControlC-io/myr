@@ -5,6 +5,14 @@ import { twoFactor } from 'better-auth/plugins';
 import prisma from './prisma';
 import { createAuditLog } from '../middleware/auditLog';
 
+const trustedOriginsEnv = process.env.TRUSTED_ORIGINS;
+const trustedOrigins = [
+  process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  ...(trustedOriginsEnv
+    ? trustedOriginsEnv.split(',').map((origin) => origin.trim()).filter(Boolean)
+    : []),
+];
+
 /**
  * Better Auth configuration with email and password authentication.
  * Configured with Prisma adapter for PostgreSQL database.
@@ -21,6 +29,7 @@ export const auth = betterAuth({
   appName: 'DMZ Secure App',
   secret: process.env.BETTER_AUTH_SECRET || 'default_secret_change_in_production',
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  trustedOrigins,
   advanced: {
     cookiePrefix: 'dmz_auth'
   },
@@ -100,22 +109,4 @@ export const loadAuthConfig = async () => {
       githubEnabled: false
     };
   }
-};
-
-/**
- * Middleware to check auth configuration periodically.
- * This enables hot swapping of providers without server restart.
- */
-export const createAuthRefreshMiddleware = () => {
-  let lastRefresh = Date.now();
-  const REFRESH_INTERVAL = 60000; // 60 seconds
-
-  return async (req: any, res: any, next: any) => {
-    const now = Date.now();
-    if (now - lastRefresh > REFRESH_INTERVAL) {
-      await loadAuthConfig();
-      lastRefresh = now;
-    }
-    next();
-  };
 };

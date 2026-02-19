@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@shared/auth';
 
 const TwoFactorChallenge = () => {
   const [code, setCode] = useState('');
@@ -23,6 +23,7 @@ const TwoFactorChallenge = () => {
 
     try {
       await verify2FALogin(code, trustDevice);
+      await checkSession();
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Invalid verification code');

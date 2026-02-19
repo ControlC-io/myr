@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@shared/auth';
 import { useEffect, useState } from 'react';
 import TwoFactorSetup from '../components/TwoFactorSetup';
+import Counter from '../components/Counter';
 
 const Dashboard = () => {
   const { user, logout, loading, disable2FA, checkSession } = useAuth();
@@ -123,6 +124,10 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-8">
+            <Counter />
           </div>
 
           <div className="mt-8 bg-gray-50 rounded-lg p-6">

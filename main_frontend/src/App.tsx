@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from '@shared/auth';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
-import AdminDashboard from './pages/AdminDashboard';
 import TwoFactorChallenge from './pages/TwoFactorChallenge';
+import EmailOtpChallenge from './pages/EmailOtpChallenge';
 import Navbar from './components/Navbar';
 
 const App = () => {
@@ -20,8 +20,8 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/auth/2fa-challenge" element={<TwoFactorChallenge />} />
+              <Route path="/auth/email-otp" element={<EmailOtpChallenge />} />
             </Routes>
           </main>
         </div>

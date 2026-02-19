@@ -48,9 +48,36 @@ const seedAuthSettings = async () => {
   console.log('\nAuth settings seeded successfully!');
 };
 
+const seedRoles = async () => {
+  console.log('Seeding default RBAC roles...');
+
+  const defaultRoles = [
+    { name: 'Admin User', description: 'Full system access' },
+    { name: 'Manager', description: 'Read and write access to core resources' },
+  ];
+
+  for (const role of defaultRoles) {
+    const existing = await prisma.role.findUnique({
+      where: { name: role.name },
+    });
+
+    if (existing) {
+      console.log(`  ✓ Role "${role.name}" already exists`);
+    } else {
+      await prisma.role.create({
+        data: role,
+      });
+      console.log(`  + Created role "${role.name}"`);
+    }
+  }
+
+  console.log('Default roles seeded successfully!');
+};
+
 const main = async () => {
   try {
     await seedAuthSettings();
+    await seedRoles();
   } catch (error) {
     console.error('Error seeding database:', error);
     process.exit(1);

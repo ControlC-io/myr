@@ -4,23 +4,71 @@ A secure multi tier application implementing network segmentation with separate 
 
 ## Architecture Overview
 
-This project implements a secure DMZ (Demilitarized Zone) architecture with two isolated networks:
+This project implements a secure DMZ (Demilitarized Zone) architecture with two isolated networks and multiple services:
 
-### DMZ Network (dmz_net)
-* **NGINX Reverse Proxy**: Entry point, handles routing and SSL termination
-* **React Frontend**: Serves the user interface
+### DMZ Network (`dmz_net`)
+* **NGINX Reverse Proxy** (`reverse_proxy`): Entry point, handles routing, health checks and SSL termination
+* **Main Frontend** (`main_frontend_app`): React/Vite app for end users (Home, Login, Register, Dashboard, Counter, 2FA)
+* **Admin Frontend** (`admin_frontend_app`): React/Vite admin panel (Settings, Audit Logs, Database view, User Roles placeholder)
 
-### Internal Network (internal_net)
-* **Express Backend**: Handles business logic and database operations
-* **PostgreSQL Database**: Stores user data and system settings
+### Internal Network (`internal_net`)
+* **Express Backend** (`backend_api`): Business logic, authentication, RBAC and database access
+* **PostgreSQL Database** (`database`): Stores users, sessions, roles, feature flags, audit logs, etc.
+* **Email Service** (`email_service`): Dedicated microservice that sends 2FA (OTP) emails via SendGrid
 
 ## Key Features
 
-* **Network Isolation**: Frontend cannot directly access the database
-* **Dynamic Authentication**: Better Auth with database driven provider configuration
+* **Network Isolation**: Frontends in the DMZ never touch the database directly; they only talk to the backend
+* **Dynamic Authentication**: Better Auth with database‑driven provider configuration stored in `system_settings`
+* **JWT + Sessions**: Session cookies for Better Auth, plus JWT Bearer tokens for protected API routes
+* **Two‑Factor Authentication (2FA)**: TOTP via Better Auth plugin and optional email‑OTP via the `email_service`
+* **Role Based Access Control (RBAC)**: `Role`, `UserRole` and `RoleEndpointMapping` models controlling access per endpoint
+* **Counter Test Feature**: A persisted counter API used by the Main Frontend to prove centralized JWT + RBAC enforcement
+* **Audit Logging**: `AuditLog` table with hooks for sign‑in / sign‑up / sign‑out and admin operations
+* **API Documentation**: OpenAPI/Swagger UI served at `/api/docs`
 * **Type Safety**: Full TypeScript support across frontend and backend
-* **Modern Stack**: React + Vite, Express, Prisma ORM
-* **Feature Flags**: SystemSettings model for runtime configuration
+* **Modern Stack**: React + Vite, Express, Prisma ORM, Docker, NGINX
+* **Feature Flags**: `SystemSettings` model for runtime configuration
+
+## Compliance with new_requisites.md
+
+This section maps each requirement from [new_requisites.md](new_requisites.md) to the current implementation.
+
+### 1. Backend and Security — Implemented
+
+| Requirement | Status | Implementation |
+|-------------|--------|-----------------|
+| **Centralized Middleware** | Done | Single [jwtAuth](backend/src/middleware/jwtAuth.ts) middleware; all non-public routes require JWT. Admin API uses [adminAuth](backend/src/middleware/adminAuth.ts) with `x-admin-secret`. No per-endpoint auth logic. |
+| **JWT Authentication** | Done | Backend validates Bearer JWT in `jwtAuth`, verifies identity and attaches `req.user`; session-based Better Auth is used only for login/register, then JWT is issued for API access. |
+| **API Documentation** | Done | OpenAPI/Swagger at `GET /api/docs` ([swagger.ts](backend/src/lib/swagger.ts)); routes documented with JSDoc. |
+
+### 2. Frontend Separation and Testing — Implemented
+
+| Requirement | Status | Implementation |
+|-------------|--------|-----------------|
+| **App Split** | Done | Two apps: [main_frontend](main_frontend/) (port 5173 / behind nginx 80) and [admin_frontend](admin_frontend/) (port 5174 / behind nginx 8080). |
+| **Counter Test Feature** | Done | [Counter](main_frontend/src/components/Counter.tsx) in Main Frontend calls `GET/POST /api/counter` and [counter routes](backend/src/routes/counter.ts) persist value in `SystemSettings`. |
+| **Protected UI** | Done | Counter sends `Authorization: Bearer <JWT>`; without a valid JWT (or with insufficient role) the API returns 401/403, proving centralized middleware enforcement. |
+
+### 3. Role Based Access Control (RBAC) — Backend done; Admin UI placeholder
+
+| Requirement | Status | Implementation |
+|-------------|--------|-----------------|
+| **Role Management** | Backend done | Full CRUD in [roles.ts](backend/src/routes/roles.ts): `GET/POST/DELETE /api/admin/roles`. Admin App has a **User Roles** tab that is still a **placeholder** (static data, no API calls). |
+| **Specific Roles** | Done | Roles "Admin User" and "Manager" are created by the [seed script](backend/src/scripts/seed.ts). You can also create more via API or future Admin UI. |
+| **Endpoint Mapping** | Backend done | [RoleEndpointMapping](backend/prisma/schema.prisma) and API: `GET/POST/DELETE /api/admin/roles/:id/endpoints`. No UI in Admin App yet to configure which endpoints each role can access. |
+| **User Assignment** | Backend done | `POST /api/admin/users/:id/roles`, `DELETE /api/admin/users/:id/roles/:roleId`. No UI in Admin App yet to assign/revoke roles per user. |
+
+RBAC is enforced: [jwtAuth](backend/src/middleware/jwtAuth.ts) checks `RoleEndpointMapping` before allowing access. To manage roles and assignments today, use the API (e.g. via Swagger at `/api/docs`) or Prisma Studio.
+
+### 4. Two Factor Authentication (2FA) and Infrastructure — Implemented
+
+| Requirement | Status | Implementation |
+|-------------|--------|-----------------|
+| **Email 2FA** | Done | Flow: `POST /api/auth/token` (if user has `twoFactorEnabled`) returns `requires2FA` and sends OTP via [email_service](email_service/); client calls `POST /api/auth/verify-otp` with code to get JWT. [auth routes](backend/src/routes/auth.ts), [EmailOtpChallenge](main_frontend/src/pages/EmailOtpChallenge.tsx). |
+| **SendGrid Integration** | Done | [email_service](email_service/src/index.ts) uses `@sendgrid/mail`; OTP emails sent from `SENDGRID_FROM_EMAIL`. |
+| **Dedicated Docker Service** | Done | [email_service](email_service/) runs as its own container in [docker-compose.yml](docker-compose.yml); backend calls it via `EMAIL_SERVICE_URL`. |
+| **Secret Management** | Done | SendGrid key and config in `.env` only; [.gitignore](.gitignore) excludes `.env`; [.env.example](.env.example) documents variables without real secrets. |
 
 ## Quick Start Guide
 
@@ -66,9 +114,9 @@ docker-compose down
 docker-compose down -v && docker-compose up -d
 ```
 
-## Local Development (Backend and Frontend on Your Machine)
+## Local Development (Backend and Frontends on Your Machine)
 
-Use this flow when you want to run the backend and frontend on your host (e.g. on Windows, to avoid Prisma engine issues when using Docker for the backend).
+Use this flow when you want to run the backend and frontends on your host (e.g. on Windows, to avoid Prisma engine issues when using Docker for the backend).
 
 **Requirements:** Node.js 20+, PostgreSQL reachable at `localhost:5432` (you can run only the database with Docker).
 
@@ -90,7 +138,7 @@ Use this flow when you want to run the backend and frontend on your host (e.g. o
    npm run seed
    ```
 
-3. **Frontend:** no special first time steps required.
+3. **Frontends:** no special first time steps required.
 
 ### Every Time You Start Everything
 
@@ -109,64 +157,116 @@ Use this flow when you want to run the backend and frontend on your host (e.g. o
 
    It should be running at `http://localhost:3000`.
 
-3. **Frontend** (terminal 2):
+3. **Main Frontend** (terminal 2):
 
    ```bash
-   cd frontend
+   cd main_frontend
+   npm install
    npm run dev
    ```
 
-   The app will be available at `http://localhost:5173`.
+   It will be available at `http://localhost:5173`.
 
-4. **Use the app:** open **http://localhost:5173** in your browser.  
-   Home, Login, Register, Dashboard, and **Admin** (http://localhost:5173/admin/dashboard) all talk to the backend on port 3000.
+4. **Admin Frontend** (terminal 3):
+
+   ```bash
+   cd admin_frontend
+   npm install
+   npm run dev
+   ```
+
+   By default it runs on `http://localhost:5174`. When using Docker/nginx you typically access it via `http://localhost:8080` instead.
+
+5. **Use the app:** open **http://localhost:5173** in your browser for the Main Frontend, and **http://localhost:8080** for the Admin panel when running via Docker/nginx.
 
 ### Environment Variables
 
-- **Backend:** `backend/.env` with `DATABASE_URL`, `ADMIN_SECRET`, etc. (already set up).
-- **Frontend:** `frontend/.env` with `VITE_API_URL=http://localhost:3000` and `VITE_ADMIN_SECRET=test_admin_secret_123` for the Admin panel.
+- **Root `.env` (backend + infrastructure):** see `.env.example` for all required variables such as `DATABASE_URL`, `ADMIN_SECRET`, `JWT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `TRUSTED_ORIGINS`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `EMAIL_SERVICE_SECRET`, `EMAIL_SERVICE_URL`, etc. **Do not commit real secrets; use `.env.example` as a template.**
+- **Admin Frontend:** `admin_frontend/.env` (or `.env.local`) with:
+  - `VITE_API_URL` (optional). When running behind nginx (`http://localhost:8080`), you can leave it empty to use relative `/api` calls. For direct dev against the backend without nginx, set `VITE_API_URL=http://localhost:3000`.
+  - `VITE_ADMIN_SECRET` which must match `ADMIN_SECRET` in the backend `.env`.
 
 ## Project Structure
 
-```
+```text
 myrtest/
 ├── backend/
 │   ├── src/
-│   │   ├── index.ts              # Express server entry point
+│   │   ├── index.ts              # Express server entry point (health, auth, JWT, admin, counter)
 │   │   ├── lib/
-│   │   │   └── auth.ts           # Better Auth configuration
+│   │   │   ├── auth.ts           # Better Auth configuration + dynamic config loader
+│   │   │   ├── emailService.ts   # HTTP client to the email_service (2FA OTP)
+│   │   │   └── swagger.ts        # Swagger/OpenAPI spec builder
+│   │   ├── middleware/
+│   │   │   ├── jwtAuth.ts        # Centralized JWT + RBAC middleware
+│   │   │   ├── adminAuth.ts      # x-admin-secret admin guard
+│   │   │   └── auditLog.ts       # Helper to write AuditLog entries
+│   │   ├── routes/
+│   │   │   ├── auth.ts           # JWT issuance + email OTP 2FA endpoints
+│   │   │   ├── counter.ts        # Counter feature (protected by JWT/RBAC)
+│   │   │   ├── admin.ts          # Admin settings, database overview, audit logs
+│   │   │   └── roles.ts          # RBAC: roles, endpoint mappings, user-role assignment
 │   │   └── scripts/
-│   │       ├── seed.ts           # Seed auth settings
+│   │       ├── seed.ts           # Seed auth and system settings
 │   │       └── test-auth.ts      # Test users and sessions
 │   ├── prisma/
-│   │   └── schema.prisma         # Database schema
+│   │   └── schema.prisma         # Database schema (users, roles, audit_logs, etc.)
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── Dockerfile
-├── frontend/
+├── main_frontend/
 │   ├── src/
 │   │   ├── main.tsx              # React entry point
-│   │   ├── App.tsx               # Routes
+│   │   ├── App.tsx               # Routes: Home, Login, Register, Dashboard, 2FA flows
 │   │   ├── contexts/
-│   │   │   └── AuthContext.tsx   # Auth state management
+│   │   │   └── AuthContext.tsx   # Auth state, Better Auth client, JWT handling
 │   │   ├── components/
-│   │   │   ├── LoginForm.tsx     # Login form
-│   │   │   └── RegisterForm.tsx  # Register form
+│   │   │   ├── Navbar.tsx        # Main navigation (with link to Admin panel)
+│   │   │   ├── LoginForm.tsx     # Login form with 2FA hooks
+│   │   │   ├── RegisterForm.tsx  # Register form
+│   │   │   └── Counter.tsx       # Counter UI hitting /api/counter endpoints
 │   │   ├── pages/
-│   │   │   ├── Home.tsx          # Home page
-│   │   │   ├── Login.tsx         # Login page
-│   │   │   ├── Register.tsx      # Register page
-│   │   │   └── Dashboard.tsx     # Protected dashboard
+│   │   │   ├── Home.tsx
+│   │   │   ├── Login.tsx
+│   │   │   ├── Register.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── TwoFactorChallenge.tsx   # TOTP 2FA flow
+│   │   │   └── EmailOtpChallenge.tsx    # Email OTP 2FA flow
 │   │   └── index.css             # Tailwind styles
 │   ├── package.json
 │   ├── vite.config.ts
 │   ├── tsconfig.json
 │   └── Dockerfile
+├── admin_frontend/
+│   ├── src/
+│   │   ├── main.tsx              # React entry point
+│   │   ├── App.tsx               # Routing + ProtectedRoute wrapper
+│   │   ├── contexts/
+│   │   │   └── AuthContext.tsx   # Admin-side auth using Better Auth
+│   │   ├── components/
+│   │   │   ├── ProtectedRoute.tsx
+│   │   │   ├── SettingsTab.tsx   # SystemSettings editor (feature flags, auth config)
+│   │   │   ├── LogsTab.tsx       # Audit logs table
+│   │   │   └── DatabaseTab.tsx   # Database table counts and redacted views
+│   │   ├── pages/
+│   │   │   └── AdminDashboard.tsx # Tabs: Settings, Audit Logs, Database, User Roles (placeholder)
+│   │   └── index.css
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   └── Dockerfile
+├── email_service/
+│   ├── src/
+│   │   └── index.ts              # Express microservice, /send-otp via SendGrid
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── Dockerfile
 ├── nginx/
-│   └── nginx.conf                # Reverse proxy configuration
-├── docker-compose.yml             # Multi container orchestration
-├── .env                           # Environment variables (Docker)
-└── README.md                      # This file
+│   └── nginx.conf                # Reverse proxy configuration (port 80 + 8080)
+├── docker-compose.yml            # Multi-container orchestration (backend, DB, frontends, email, nginx)
+├── .env                          # Environment variables (not committed; see .env.example)
+├── .env.example                  # Example configuration without real secrets
+└── README.md                     # This file
 ```
 
 ## Getting Started
@@ -252,11 +352,23 @@ Note: The containers use their own `node_modules` via Docker volumes, so local i
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Frontend** | http://localhost | Main application UI |
-| **Backend API** | http://localhost/api | API endpoints |
-| **Health Check** | http://localhost/api/health | Backend health status |
+| **Main Frontend** | http://localhost | Main application UI (Home/Login/Register/Dashboard/Counter/2FA) |
+| **Admin Frontend** | http://localhost:8080 | Admin panel (Settings, Audit Logs, Database, Roles placeholder) |
+| **Backend API** | http://localhost/api | API endpoints (auth, counter, admin, roles) |
+| **Health Check** | http://localhost/api/health | Backend health status (DB latency, service status) |
 | **NGINX Health** | http://localhost/nginx-health | Proxy health status |
 | **Prisma Studio** | http://localhost:5555 | Database GUI (after running command) |
+
+## Quick Verification Checklist
+
+After starting the stack, you can quickly confirm that everything is wired correctly with these steps:
+
+1. **Backend health:** Visit `http://localhost/api/health` and check that `status` is `ok` and `database.ok` is `true`.
+2. **Main app UI:** Visit `http://localhost`, register a user and log in; you should be redirected to the Dashboard.
+3. **Admin panel:** Visit `http://localhost:8080`, log in with an existing user and open the **Settings**, **Audit Logs** and **Database** tabs.
+4. **Counter feature:** From the main Dashboard, use the Counter controls; the values should persist and be reflected in the admin **Database** tab (`system_settings` key `counter`). Requests are protected by JWT + RBAC.
+5. **2FA Email (optional):** If `SENDGRID_API_KEY` and `EMAIL_SERVICE_SECRET` are configured, enable email 2FA for a user and verify you receive OTP codes and can complete login via the email challenge page.
+6. **API docs:** Visit `http://localhost/api/docs` to inspect and try the documented endpoints (auth, counter, admin, roles).
 
 ### Docker Container Management
 
@@ -272,7 +384,9 @@ docker-compose logs -f
 
 # Specific service
 docker logs backend_api -f
-docker logs frontend_app -f
+docker logs main_frontend_app -f
+docker logs admin_frontend_app -f
+docker logs email_service -f
 docker logs reverse_proxy -f
 docker logs database -f
 
@@ -296,7 +410,9 @@ docker-compose restart
 
 # Restart specific service
 docker-compose restart backend
-docker-compose restart frontend
+docker-compose restart main_frontend
+docker-compose restart admin_frontend
+docker-compose restart email_service
 docker-compose restart nginx
 ```
 
@@ -484,13 +600,13 @@ Then navigate to the `users` table and delete the user visually.
 docker exec database psql -U postgres -d myrtest -c "DELETE FROM users WHERE email = 'user@example.com';"
 ```
 
-### Clear All Users and Sessions
+### Clear All Users, Roles and Sessions
 
 ```bash
-docker exec database psql -U postgres -d myrtest -c "TRUNCATE users, accounts, sessions CASCADE;"
+docker exec database psql -U postgres -d myrtest -c "TRUNCATE users, accounts, sessions, roles, user_roles, role_endpoint_mappings, audit_logs, verification CASCADE;"
 ```
 
-**Warning:** This deletes ALL users and sessions permanently.
+**Warning:** This deletes ALL users, roles, mappings, audit logs and sessions permanently.
 
 ### Reset Database to Fresh State
 
