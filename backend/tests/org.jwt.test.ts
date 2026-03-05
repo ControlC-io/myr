@@ -12,6 +12,7 @@
  *   - Valid JWT, member with sufficient role → 200
  */
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { MemberRole } from '@prisma/client';
 import {
   buildApp, prisma, signJwt,
@@ -24,6 +25,10 @@ const SLUG_PREFIX  = 'test-jwt-org-';
 const EMAIL_SUFFIX = '@jwt-org-test.local';
 
 let orgId: string;
+let ownerId: string;
+let ownerEmail: string;
+let outsiderId: string;
+let outsiderEmail: string;
 let ownerJwt:   string;
 let adminJwt:   string;
 let managerJwt: string;
@@ -35,7 +40,12 @@ beforeAll(async () => {
   const admin   = await createTestUser(`admin${EMAIL_SUFFIX}`);
   const manager = await createTestUser(`manager${EMAIL_SUFFIX}`);
   const viewer  = await createTestUser(`viewer${EMAIL_SUFFIX}`);
-  const outsider= await createTestUser(`outsider${EMAIL_SUFFIX}`);
+  const outsider = await createTestUser(`outsider${EMAIL_SUFFIX}`);
+
+  ownerId = owner.id;
+  ownerEmail = owner.email;
+  outsiderId = outsider.id;
+  outsiderEmail = outsider.email;
 
   const org = await createTestOrgWithMember(`${SLUG_PREFIX}main`, owner.id, MemberRole.OWNER);
   orgId = org.id;
@@ -54,6 +64,51 @@ beforeAll(async () => {
   viewerJwt  = signJwt(viewer.id,  viewer.email);
   outsiderJwt= signJwt(outsider.id, outsider.email);
 });
+
+/**
+ * Decode the payload part of a JWT without verifying the signature.
+ * This is purely for test-time inspection / tampering simulations.
+ */
+function decodeJwtPayload(token: string): any {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid JWT structure');
+  }
+  const payloadB64 = parts[1]
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const padded = payloadB64 + '='.repeat((4 - (payloadB64.length % 4)) % 4);
+  const json = Buffer.from(padded, 'base64').toString('utf8');
+  return JSON.parse(json);
+}
+
+/**
+ * Return a new JWT string using the original header and signature, but with a
+ * modified payload. This mimics an attacker editing the payload without
+ * re-signing (so the HMAC signature no longer matches).
+ */
+function tamperJwtPayload(
+  token: string,
+  overrides: Record<string, unknown>
+): string {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid JWT structure');
+  }
+  const [headerB64, payloadB64, signature] = parts;
+
+  const currentPayload = decodeJwtPayload(token);
+  const newPayload = { ...currentPayload, ...overrides };
+  const json = JSON.stringify(newPayload);
+
+  const newPayloadB64 = Buffer.from(json, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+  return `${headerB64}.${newPayloadB64}.${signature}`;
+}
 
 afterAll(async () => {
   await cleanupTestOrgs(SLUG_PREFIX);
@@ -135,5 +190,49 @@ describe('GET /api/orgs/:orgId/audit-logs', () => {
   it('returns 200 for OWNER', async () => {
     const res = await request(app).get(path()).set('Authorization', `Bearer ${ownerJwt}`);
     expect(res.status).toBe(200);
+  });
+});
+
+// ─── JWT Tampering & Forgery Resistance ───────────────────────────────────────
+
+describe('JWT tampering & forgery resistance', () => {
+  const profilePath = () => `/api/orgs/${orgId}/profile`;
+  const auditLogsPath = () => `/api/orgs/${orgId}/audit-logs`;
+
+  it('rejects a token where the userId in the payload is tampered to another valid user', async () => {
+    const tampered = tamperJwtPayload(outsiderJwt, { userId: ownerId });
+
+    const res = await request(app)
+      .get(profilePath())
+      .set('Authorization', `Bearer ${tampered}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/invalid or expired token/i);
+  });
+
+  it('rejects a token signed with the wrong secret even if the payload looks valid', async () => {
+    const forged = jwt.sign(
+      { userId: ownerId, email: ownerEmail, roles: [] },
+      'not_the_real_jwt_secret',
+      { expiresIn: '1h' }
+    );
+
+    const res = await request(app)
+      .get(profilePath())
+      .set('Authorization', `Bearer ${forged}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/invalid or expired token/i);
+  });
+
+  it('rejects a token where roles are elevated in the payload without re-signing', async () => {
+    const tampered = tamperJwtPayload(viewerJwt, { roles: ['ADMIN'] });
+
+    const res = await request(app)
+      .get(auditLogsPath())
+      .set('Authorization', `Bearer ${tampered}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/invalid or expired token/i);
   });
 });

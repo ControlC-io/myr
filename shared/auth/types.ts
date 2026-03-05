@@ -15,6 +15,8 @@ export interface AuthContextType {
   user: User | null;
   jwtToken: string | null;
   loading: boolean;
+  /** Indicates whether a JWT is currently being fetched or synced from the session. */
+  jwtLoading: boolean;
   /** Signs in with email/password. Returns flags when extra steps are required. */
   login: (email: string, password: string) => Promise<{ twoFactorRedirect?: true; emailOtpRequired?: true }>;
   register: (name: string, email: string, password: string) => Promise<void>;

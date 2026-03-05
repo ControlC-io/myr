@@ -38,8 +38,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [jwtLoading, setJwtLoading] = useState(false);
 
   const fetchJwtFromSession = async (): Promise<boolean> => {
+    setJwtLoading(true);
     try {
       const res = await fetch('/api/auth/jwt-from-session', { credentials: 'include' });
       if (!res.ok) return false;
@@ -52,6 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     } catch {
       return false;
+    } finally {
+      setJwtLoading(false);
     }
   };
 
@@ -67,20 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    */
   const checkSession = async (commitSync = false) => {
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7713/ingest/4d1c7866-0c93-4eea-be66-7eaca1b46d80', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'shared/auth/AuthProvider.tsx:68',
-          message: 'checkSession called',
-          data: { commitSync },
-          timestamp: Date.now(),
-          runId: 'postfix1',
-          hypothesisId: 'S1'
-        })
-      }).catch(() => {});
-      // #endregion
       const res = await fetch('/api/auth/get-session', { credentials: 'include' });
       const data = await safeJson<{ user?: unknown }>(res);
       if (res.ok) {
@@ -95,20 +85,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else {
             applyUser();
           }
-          // #region agent log
-          fetch('http://127.0.0.1:7713/ingest/4d1c7866-0c93-4eea-be66-7eaca1b46d80', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'shared/auth/AuthProvider.tsx:79',
-              message: 'checkSession user set from server session',
-              data: { hasUser: true },
-              timestamp: Date.now(),
-              runId: 'postfix1',
-              hypothesisId: 'S1'
-            })
-          }).catch(() => {});
-          // #endregion
           if (!localStorage.getItem(JWT_STORAGE_KEY)) {
             await fetchJwtFromSession();
           }
@@ -134,26 +110,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchJwtToken = async (email: string, password: string): Promise<boolean> => {
-    const res = await fetch('/api/auth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    setJwtLoading(true);
+    try {
+      const res = await fetch('/api/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) throw new Error('Failed to obtain access token');
+      if (!res.ok) {
+        // Fallback: try to recover JWT from the established session cookie.
+        const fromSession = await fetchJwtFromSession();
+        if (!fromSession) {
+          throw new Error('Failed to obtain access token');
+        }
+        return true;
+      }
 
-    const data = await safeJson<{ token?: string; requires2FA?: boolean; userId?: string }>(res);
+      const data = await safeJson<{ token?: string; requires2FA?: boolean; userId?: string }>(res);
 
-    if (data?.requires2FA && data?.userId) {
-      sessionStorage.setItem(PENDING_OTP_KEY, data.userId);
-      return false;
+      if (data?.requires2FA && data?.userId) {
+        sessionStorage.setItem(PENDING_OTP_KEY, data.userId);
+        return false;
+      }
+
+      if (data?.token) {
+        setJwtToken(data.token);
+        localStorage.setItem(JWT_STORAGE_KEY, data.token);
+        return true;
+      }
+
+      // If the token endpoint succeeded but did not return a token, fall back to the session.
+      const fromSession = await fetchJwtFromSession();
+      if (!fromSession) {
+        throw new Error('No access token returned from auth server');
+      }
+      return true;
+    } finally {
+      setJwtLoading(false);
     }
-
-    if (data?.token) {
-      setJwtToken(data.token);
-      localStorage.setItem(JWT_STORAGE_KEY, data.token);
-    }
-    return true;
   };
 
   /**
@@ -299,40 +294,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Uses flushSync so user state is committed before the caller calls navigate().
    */
   const verify2FALogin = async (code: string, trustDevice = false): Promise<void> => {
-    // #region agent log
-    fetch('http://127.0.0.1:7713/ingest/4d1c7866-0c93-4eea-be66-7eaca1b46d80', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'shared/auth/AuthProvider.tsx:273',
-        message: 'verify2FALogin called',
-        data: { trustDevice },
-        timestamp: Date.now(),
-        runId: 'postfix1',
-        hypothesisId: 'S2'
-      })
-    }).catch(() => {});
-    // #endregion
     const response = await authClient.twoFactor.verifyTotp({ code, trustDevice });
     if (response.error) throw new Error(response.error.message || 'Invalid verification code');
     if (response.data?.user) {
       flushSync(() => {
         setUser(response.data!.user as User);
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7713/ingest/4d1c7866-0c93-4eea-be66-7eaca1b46d80', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'shared/auth/AuthProvider.tsx:278',
-          message: 'verify2FALogin user set from response',
-          data: { hasUser: true },
-          timestamp: Date.now(),
-          runId: 'postfix1',
-          hypothesisId: 'S2'
-        })
-      }).catch(() => {});
-      // #endregion
     } else {
       // Fallback: server didn't return user in response body — fetch session with flushSync.
       await checkSession(true);
@@ -351,6 +318,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       jwtToken,
       loading,
+      jwtLoading,
       login,
       register,
       logout,

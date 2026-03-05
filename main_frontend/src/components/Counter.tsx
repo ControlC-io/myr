@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@shared/auth';
 
 const Counter = () => {
-  const { jwtToken } = useAuth();
+  const { jwtToken, loading: authLoading, jwtLoading, checkSession } = useAuth();
   const [count, setCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [incrementing, setIncrementing] = useState(false);
@@ -16,7 +16,13 @@ const Counter = () => {
   }, [jwtToken]);
 
   const fetchCount = useCallback(async () => {
+    // Mientras la sesión o el JWT sigan cargando, no mostramos error de \"No JWT\".
     if (!jwtToken) {
+      if (authLoading || jwtLoading) {
+        setLoading(true);
+        setError(null);
+        return;
+      }
       setError('No JWT token available. Please log out and log in again.');
       setLoading(false);
       return;
@@ -126,7 +132,20 @@ const Counter = () => {
 
       {error && (
         <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
+          <div className="flex flex-col gap-2">
+            <span>{error}</span>
+            {!jwtToken && !authLoading && !jwtLoading && (
+              <button
+                type="button"
+                onClick={() => {
+                  checkSession().then(() => fetchCount());
+                }}
+                className="self-start inline-flex items-center rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+              >
+                Retry session & counter
+              </button>
+            )}
+          </div>
         </div>
       )}
 

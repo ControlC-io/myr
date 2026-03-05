@@ -47,14 +47,24 @@ interface OrgsResponse {
 
 export default function InformationClient() {
   const { t } = useTranslation("common");
-  const { jwtToken } = useAuth();
+  const { jwtToken, loading: authLoading, jwtLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supplier, setSupplier] = useState<SupplierData | null>(null);
 
   useEffect(() => {
     async function fetchData() {
-      if (!jwtToken) return;
+      // Mientras la sesión o el JWT sigan cargando, mantenemos el estado de carga.
+      if (authLoading || jwtLoading) {
+        setLoading(true);
+        return;
+      }
+
+      if (!jwtToken) {
+        setError("No JWT token available. Please log out and log in again.");
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -106,7 +116,7 @@ export default function InformationClient() {
     }
 
     fetchData();
-  }, [jwtToken]);
+  }, [jwtToken, authLoading, jwtLoading]);
 
   if (loading) {
     return (
@@ -141,31 +151,6 @@ export default function InformationClient() {
           {t("pages.customerInfo.title")}
         </h1>
       </header>
-
-      {/* JWT Debug Section */}
-      {jwtToken && (
-        <section className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl shadow-sm">
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-sm font-semibold text-textPrimary dark:text-textPrimary-dark">
-                JWT (current session)
-              </h2>
-              <button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(jwtToken)}
-                className="inline-flex items-center rounded-md border border-border dark:border-border-dark px-3 py-1.5 text-xs font-medium text-textSecondary dark:text-textSecondary-dark hover:bg-backgroundSecondary dark:hover:bg-backgroundSecondary-dark transition-colors"
-              >
-                Copy
-              </button>
-            </div>
-            <div className="max-h-40 overflow-auto rounded-md bg-backgroundSecondary dark:bg-backgroundSecondary-dark border border-border dark:border-border-dark">
-              <pre className="text-xs p-3 font-mono break-all text-textSecondary dark:text-textSecondary-dark">
-                {jwtToken}
-              </pre>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Company Info Card */}
       <section className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
