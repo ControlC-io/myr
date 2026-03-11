@@ -275,9 +275,14 @@ router.post(
       res.json(data);
     } catch (error: any) {
       console.error('Proxy request failed:', error);
-      res.status(error.response?.status || 500).json({
+      // Use 502 for remote API failures so the frontend does not mistake them
+      // for the user's own auth errors (401/403).
+      const remoteStatus = error.response?.status;
+      const httpStatus = remoteStatus ? 502 : 500;
+      res.status(httpStatus).json({
         error: 'Proxy request failed',
         details: error.response?.data || error.message,
+        remoteStatus,
       });
     }
   }

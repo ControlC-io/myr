@@ -228,7 +228,7 @@ const ServiceStatusPanel = () => {
   const anyError = services.some((s) => s.status === 'error');
 
   return (
-    <div className="card rounded-2xl p-6">
+    <div>
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wider">
           Services Status

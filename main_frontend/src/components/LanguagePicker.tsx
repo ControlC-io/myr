@@ -50,41 +50,32 @@ const LanguagePicker: FC<LanguagePickerProps> = ({ className = "", onChange }) =
 
   return (
     <div
-      className={`inline-flex items-center gap-1 rounded-full bg-surface/90 dark:bg-surface-dark/80 px-1 py-1 h-8 shadow-sm border border-border/60 dark:border-border-dark/60 ${className}`}
+      className={`inline-flex items-center gap-1 ${className}`}
       aria-label="Language selection"
     >
-      <button
-        type="button"
-        onClick={() => handleSelect("fr")}
-        className={`flex items-center justify-center h-6 w-8 rounded-full overflow-hidden transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent ${
-          language === "fr"
-            ? "bg-white shadow-sm"
-            : "bg-transparent opacity-60 hover:opacity-90"
-        }`}
-        aria-pressed={language === "fr"}
-      >
-        <img
-          src={frFlag}
-          alt="French"
-          className="h-3 w-auto"
-        />
-      </button>
-      <button
-        type="button"
-        onClick={() => handleSelect("en")}
-        className={`flex items-center justify-center h-6 w-8 rounded-full overflow-hidden transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent ${
-          language === "en"
-            ? "bg-white shadow-sm"
-            : "bg-transparent opacity-60 hover:opacity-90"
-        }`}
-        aria-pressed={language === "en"}
-      >
-        <img
-          src={ukFlag}
-          alt="English"
-          className="h-3 w-auto"
-        />
-      </button>
+      {(["fr", "en"] as Language[]).map((lang) => {
+        const isActive = language === lang;
+        return (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => handleSelect(lang)}
+            className={`relative flex items-center justify-center h-7 w-10 rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-1 ${
+              isActive
+                ? "bg-secondary shadow-sm opacity-100"
+                : "bg-transparent opacity-30 hover:opacity-60"
+            }`}
+            aria-pressed={isActive}
+            title={lang === "fr" ? "Français" : "English"}
+          >
+            <img
+              src={lang === "fr" ? frFlag : ukFlag}
+              alt={lang === "fr" ? "French" : "English"}
+              className="h-4 w-auto rounded-sm"
+            />
+          </button>
+        );
+      })}
     </div>
   );
 };

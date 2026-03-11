@@ -21,7 +21,7 @@ export default {
         surface:    { DEFAULT: '#FFFFFF', dark: '#603898' },
         border:     { DEFAULT: '#D9C9FF', dark: '#8560c0' },
         navbar:     { DEFAULT: '#FFFFFF', dark: '#1a0a2e' },
-        'navbar-border': { DEFAULT: '#D9C9FF', dark: '#2d1250' },
+        'navbar-border': { DEFAULT: '#D9C9FF', dark: '#1a0a2e' },
         textPrimary:   { DEFAULT: '#111827', dark: '#FFFFFF' },
         textSecondary: { DEFAULT: '#4B5563', dark: '#D4B8FF' },
         'input-border': { DEFAULT: '#D9C9FF', dark: '#8560c0' },

@@ -5,17 +5,15 @@
  * @returns The response data from the internal API.
  */
 export async function proxyGraphQL(query: string): Promise<any> {
-  const apiUrl = process.env.INTERNAL_API_URL;
-  const apiKey = process.env.INTERNAL_API_KEY;
-  const apiToken = process.env.INTERNAL_API_TOKEN;
+  const apiUrl = process.env.DECOMPTE_API_BASE;
+  const apiKey = process.env.DECOMPTE_API_KEY;
+  const apiToken = process.env.DECOMPTE_API_BEARER;
 
   if (!apiUrl || !apiKey || !apiToken) {
-    throw new Error('Internal API credentials not configured in environment.');
+    throw new Error('Decompte API credentials not configured in environment (DECOMPTE_API_BASE, DECOMPTE_API_KEY, DECOMPTE_API_BEARER).');
   }
 
   try {
-    // console.log('Proxying GraphQL request to:', apiUrl);
-    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {

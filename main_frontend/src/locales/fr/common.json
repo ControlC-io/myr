@@ -11,13 +11,95 @@
     "signUp": "S'inscrire",
     "logout": "Se déconnecter"
   },
+  "login": {
+    "title": "Connectez-vous",
+    "subtitle": "Accédez à votre espace MyR pour gérer vos services, tickets et contrats.",
+    "back": "← Retour",
+    "firstVisit": "Première visite ?",
+    "register": "S'inscrire",
+    "statusCta": "Statut de la plateforme",
+    "statusTitle": "Statut de la plateforme",
+    "rightPanelTitle": "Votre portail sécurisé pour les opérations quotidiennes",
+    "rightPanelSubtitle": "Suivez en temps réel le statut de la plateforme, ouvrez des tickets, gérez vos contrats et gardez le contrôle de vos services depuis un tableau de bord unique.",
+    "poweredBy": "MyR — Propulsé par Rcarre",
+    "form": {
+      "emailLabel": "Email",
+      "emailPlaceholder": "votre@email.com",
+      "passwordLabel": "Mot de passe",
+      "twoFactorDivider": "Authentification à deux facteurs",
+      "codeLabel": "Code d'authentification",
+      "phoneTip": "Ouvrez l'application d'authentification sur votre appareil",
+      "emailTip": "Vous préférez un code par email ?",
+      "emailTipLink": "Demandez-le ici",
+      "trustDevice": "Faire confiance à cet appareil pendant 30 jours",
+      "errorInvalid": "Email ou mot de passe invalide",
+      "errorCode": "Entrez le code à six chiffres de votre application.",
+      "submitLogin": "LOGIN",
+      "submitVerify": "VÉRIFIER",
+      "submitLoading": "CONNEXION...",
+      "forgotHint": "Mot de passe oublié ? Vous voulez reconfigurer l'authentification ?",
+      "resetButton": "RÉINITIALISER LE COMPTE"
+    }
+  },
+  "register": {
+    "title": "Créer un compte",
+    "subtitle": "Rejoignez MyR pour gérer vos services, tickets et contrats.",
+    "backToLogin": "Vous avez déjà un compte ?",
+    "signIn": "Se connecter",
+    "form": {
+      "nameLabel": "Nom complet",
+      "namePlaceholder": "Jean Dupont",
+      "emailLabel": "Email",
+      "emailPlaceholder": "votre@email.com",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "8 caractères minimum",
+      "confirmPasswordLabel": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
+      "errorMismatch": "Les mots de passe ne correspondent pas",
+      "errorWeak": "Le mot de passe doit contenir au moins 8 caractères",
+      "errorFailed": "Échec de l'inscription. Veuillez réessayer.",
+      "submit": "CRÉER LE COMPTE",
+      "submitLoading": "CRÉATION..."
+    }
+  },
   "pages": {
     "tickets": { "title": "Gestion des tickets" },
     "interventions": { "title": "Interventions à venir" },
     "billing": { "title": "Facturation" },
     "paymentInfo": { "title": "Informations de paiement" },
     "sepa": { "title": "Prélèvement SEPA" },
-    "customerInfo": { "title": "Informations client" },
+    "customerInfo": {
+      "title": "Informations client",
+      "tabs": {
+        "info": "INFORMATION",
+        "change": "MODIFIER LES INFORMATIONS"
+      },
+      "sections": {
+        "company": "Informations société",
+        "address": "Informations adresse",
+        "contactsSummary": "Contacts Rcarré / Rcube",
+        "contactPersons": "Personnes de contact"
+      },
+      "fields": {
+        "companyName": "Nom de la société",
+        "customerNumber": "Numéro client",
+        "vatNumber": "Numéro de TVA",
+        "phone": "Téléphone",
+        "email": "Email",
+        "addressComment": "Commentaire adresse",
+        "address": "Adresse",
+        "postalCode": "Code postal",
+        "city": "Ville",
+        "country": "Pays"
+      },
+      "roles": {
+        "technicalManager": "Responsable technique",
+        "technicalBackup": "Backup technique",
+        "salesManager": "Responsable commercial",
+        "internSalesManager": "Responsable commercial interne",
+        "notAssigned": "Non assigné"
+      }
+    },
     "bcpRooms": { "title": "Réservation de salles BCP" },
     "offers": { "title": "Offres" },
     "orders": { "title": "Commandes" },
@@ -117,10 +199,18 @@
   },
   "dashboard": {
     "home": {
+      "welcome": "Bienvenue, {{name}}",
+      "titlePrefix": "Votre espace",
+      "titleHighlight": "MyR",
       "title": "Bienvenue sur MyR",
-      "description": "Votre espace dédié vous permet de consulter et gérer vos tickets, vos données personnelles, vos factures et vos services en cours.",
+      "description": "Gérez vos tickets, factures, contrats et services depuis un espace unique et sécurisé.",
       "description2": "Effectuez facilement les actions essentielles comme la création de tickets, l’export de données et l’accès à vos formations Rsecure.",
       "loading": "Chargement du tableau de bord...",
+      "sections": {
+        "ticketing": "Tickets & Support",
+        "administrative": "Administratif",
+        "sales": "Ventes & Contrats"
+      },
       "links": {
         "tickets": "Tickets",
         "interventions": "Interventions à venir",
@@ -134,6 +224,7 @@
         "kyc": "KYC",
         "securite": "Sécurité",
         "ressources": "Ressources",
+        "suggestions": "Vos suggestions",
         "commande-rapide": "Commande rapide"
       }
     },

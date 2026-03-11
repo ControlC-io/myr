@@ -47,6 +47,9 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email_service:3001}
       EMAIL_SERVICE_SECRET: ${EMAIL_SERVICE_SECRET}
+      DECOMPTE_API_BASE: ${DECOMPTE_API_BASE}
+      DECOMPTE_API_KEY: ${DECOMPTE_API_KEY}
+      DECOMPTE_API_BEARER: ${DECOMPTE_API_BEARER}
     volumes:
       - ./backend:/app
       - /app/node_modules

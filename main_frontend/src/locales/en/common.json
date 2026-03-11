@@ -11,6 +11,57 @@
     "signUp": "Sign Up",
     "logout": "Log out"
   },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Access your MyR space to manage services, tickets and contracts.",
+    "back": "← Back",
+    "firstVisit": "First time here?",
+    "register": "Create an account",
+    "statusCta": "Platform status",
+    "statusTitle": "Platform status",
+    "rightPanelTitle": "Your secure portal for everyday operations",
+    "rightPanelSubtitle": "Monitor platform status in real time, open tickets, manage contracts and keep control over your services from a single dashboard.",
+    "poweredBy": "MyR — Powered by Rcarre",
+    "form": {
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "passwordLabel": "Password",
+      "twoFactorDivider": "Two-factor authentication",
+      "codeLabel": "Authentication code",
+      "phoneTip": "Open the authenticator app on your device",
+      "emailTip": "Prefer a code by email?",
+      "emailTipLink": "Request it here",
+      "trustDevice": "Trust this device for 30 days",
+      "errorInvalid": "Invalid email or password",
+      "errorCode": "Enter the six digit code from your authenticator.",
+      "submitLogin": "LOGIN",
+      "submitVerify": "VERIFY",
+      "submitLoading": "SIGNING IN...",
+      "forgotHint": "Forgot your password? Want to reconfigure authentication?",
+      "resetButton": "RESET ACCOUNT"
+    }
+  },
+  "register": {
+    "title": "Create account",
+    "subtitle": "Join MyR to manage your services, tickets and contracts.",
+    "backToLogin": "Already have an account?",
+    "signIn": "Sign in",
+    "form": {
+      "nameLabel": "Full name",
+      "namePlaceholder": "John Doe",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Min 8 characters",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "errorMismatch": "Passwords do not match",
+      "errorWeak": "Password must be at least 8 characters",
+      "errorFailed": "Registration failed. Please try again.",
+      "submit": "CREATE ACCOUNT",
+      "submitLoading": "CREATING..."
+    }
+  },
   "pages": {
     "tickets": { "title": "Ticket management" },
     "interventions": { "title": "Upcoming interventions" },
@@ -21,7 +72,38 @@
     },
     "paymentInfo": { "title": "Payment information" },
     "sepa": { "title": "SEPA Direct Debit" },
-    "customerInfo": { "title": "Customer information" },
+    "customerInfo": {
+      "title": "Customer information",
+      "tabs": {
+        "info": "INFORMATION",
+        "change": "CHANGE INFORMATION"
+      },
+      "sections": {
+        "company": "Company Information",
+        "address": "Address Information",
+        "contactsSummary": "Contacts Rcarré / Rcube",
+        "contactPersons": "Contact persons"
+      },
+      "fields": {
+        "companyName": "Company name",
+        "customerNumber": "Customer number",
+        "vatNumber": "VAT number",
+        "phone": "Phone",
+        "email": "Email",
+        "addressComment": "Address comment",
+        "address": "Address",
+        "postalCode": "Postal code",
+        "city": "City",
+        "country": "Country"
+      },
+      "roles": {
+        "technicalManager": "Technical manager",
+        "technicalBackup": "Technical backup",
+        "salesManager": "Sales manager",
+        "internSalesManager": "Intern sales manager",
+        "notAssigned": "Not assigned"
+      }
+    },
     "bcpRooms": { "title": "BCP room booking" },
     "offers": { "title": "Offers" },
     "orders": { "title": "Orders" },
@@ -147,10 +229,18 @@
   },
   "dashboard": {
     "home": {
+      "welcome": "Welcome back, {{name}}",
+      "titlePrefix": "Your MyR",
+      "titleHighlight": "Control Panel",
       "title": "Welcome to MyR",
-      "description": "Your dedicated space allows you to view and manage your tickets, personal data, invoices, and ongoing services.",
+      "description": "Manage your tickets, invoices, contracts and services from a single secure space.",
       "description2": "Easily perform essential actions such as creating tickets, exporting data, and accessing your Rsecure training.",
       "loading": "Loading dashboard...",
+      "sections": {
+        "ticketing": "Ticketing & Support",
+        "administrative": "Administrative",
+        "sales": "Sales & Contracts"
+      },
       "links": {
         "tickets": "Tickets",
         "interventions": "Upcoming interventions",
@@ -164,6 +254,7 @@
         "kyc": "KYC",
         "securite": "Security",
         "ressources": "Resources",
+        "suggestions": "Your suggestions",
         "commande-rapide": "Quick order"
       }
     },

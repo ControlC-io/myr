@@ -75,7 +75,7 @@ Light theme:
   - **Tailwind**: `bg-background`
 - **Surface (cards, panels, navbar)**
   - **Token**: `surface`
-  - **Hex**: `#FFFFFF` (near-white surface to keep text highly readable)
+  - **Hex**: `#FFFFFF` (white surface for high readability)
   - **Tailwind**: `bg-surface`
 - **Borders**
   - **Token**: `border`
@@ -86,16 +86,20 @@ Dark theme:
 
 - **App background**
   - **Token**: `background.dark`
-  - **Hex**: `#040225` (`dark_purple` – very dark purple background)
+  - **Hex**: `#0d0520` (near-black deep purple background)
   - **Tailwind**: `dark:bg-background-dark`
 - **Surface**
   - **Token**: `surface.dark`
-  - **Hex**: `#28164e` (`black_purple` – main dark surfaces like cards/navbar)
+  - **Hex**: `#462671` (main dark surfaces: cards, panels, left login panel)
   - **Tailwind**: `dark:bg-surface-dark`
 - **Borders**
   - **Token**: `border.dark`
-  - **Hex**: `#3B2A6F` (slightly lighter purple for separating surfaces)
+  - **Hex**: `#6b3f99` (medium purple separator on dark surfaces)
   - **Tailwind**: `dark:border-border-dark`
+- **Background secondary**
+  - **Token**: `backgroundSecondary` / `backgroundSecondary.dark`
+  - **Hex (light)**: `#EDE8FF` / **Hex (dark)**: `#1a0a2e`
+  - **Tailwind**: `bg-backgroundSecondary dark:bg-backgroundSecondary-dark`
 
 On these purple backgrounds:
 
@@ -121,15 +125,15 @@ On these purple backgrounds:
 
 - **Primary text**
   - **Tokens**: `textPrimary`, `textPrimary.dark`
-  - **Hex (light)**: `#111827`
-  - **Hex (dark)**: `#F9FAFB`
+  - **Hex (light)**: `#1a0a2e` (deep purple, matches navbar and brand tone)
+  - **Hex (dark)**: `#FFFFFF`
   - **Tailwind**:
     - `text-textPrimary`
     - `dark:text-textPrimary-dark`
 - **Secondary text**
   - **Tokens**: `textSecondary`, `textSecondary.dark`
-  - **Hex (light)**: `#4B5563`
-  - **Hex (dark)**: `#9CA3AF`
+  - **Hex (light)**: `#6b5a8a` (muted purple secondary)
+  - **Hex (dark)**: `#D4B8FF`
   - **Tailwind**:
     - `text-textSecondary`
     - `dark:text-textSecondary-dark`
