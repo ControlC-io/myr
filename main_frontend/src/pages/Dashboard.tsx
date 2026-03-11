@@ -64,155 +64,144 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="card rounded-2xl p-8">
-          <div className="flex justify-between items-start mb-8">
+    <div className="p-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="card rounded-2xl p-5">
+          <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-textPrimary dark:text-textPrimary-dark mb-2">
+              <h1 className="text-xl font-bold text-textPrimary dark:text-textPrimary-dark">
                 {t('dashboard.info.title')}
               </h1>
-              <p className="text-textSecondary dark:text-textSecondary-dark">
+              <p className="text-sm text-textSecondary dark:text-textSecondary-dark">
                 {t('dashboard.info.subtitle')}
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               {t('auth.logout')}
             </button>
           </div>
 
-          <div className="bg-secondary rounded-lg p-6 text-secondary-on-light dark:text-secondary-on-dark mb-8">
-            <h2 className="text-2xl font-bold mb-2">
+          <div className="bg-secondary rounded-lg px-4 py-3 text-secondary-on-light dark:text-secondary-on-dark mb-4 flex items-center justify-between">
+            <h2 className="text-base font-bold">
               {t('dashboard.info.greeting', {
                 name: user.name || t('dashboard.info.greetingFallback'),
               })}
             </h2>
-            <p className="opacity-80">{user.email}</p>
+            <p className="text-sm opacity-80">{user.email}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="card rounded-lg p-6">
-              <h3 className="font-semibold text-textPrimary dark:text-textPrimary-dark mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="card rounded-lg p-4">
+              <h3 className="font-semibold text-sm text-textPrimary dark:text-textPrimary-dark mb-3">
                 {t('dashboard.info.userCardTitle')}
               </h3>
-              <dl className="space-y-2">
+              <dl className="space-y-1.5">
                 <div>
-                  <dt className="text-sm font-medium text-textSecondary dark:text-textSecondary-dark">
+                  <dt className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
                     {t('dashboard.info.userIdLabel')}
                   </dt>
-                  <dd className="text-textPrimary dark:text-textPrimary-dark font-mono text-sm">{user.id}</dd>
+                  <dd className="text-textPrimary dark:text-textPrimary-dark font-mono text-xs">{user.id}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-textSecondary dark:text-textSecondary-dark">
+                  <dt className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
                     {t('dashboard.info.emailLabel')}
                   </dt>
-                  <dd className="text-textPrimary dark:text-textPrimary-dark">{user.email}</dd>
+                  <dd className="text-sm text-textPrimary dark:text-textPrimary-dark">{user.email}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-textSecondary dark:text-textSecondary-dark">
+                  <dt className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
                     {t('dashboard.info.nameLabel')}
                   </dt>
-                  <dd className="text-textPrimary dark:text-textPrimary-dark">
+                  <dd className="text-sm text-textPrimary dark:text-textPrimary-dark">
                     {user.name || t('dashboard.info.nameNotSet')}
                   </dd>
                 </div>
               </dl>
             </div>
 
-            <div className="card rounded-lg p-6">
-              <h3 className="font-semibold text-textPrimary dark:text-textPrimary-dark mb-4">
+            <div className="card rounded-lg p-4">
+              <h3 className="font-semibold text-sm text-textPrimary dark:text-textPrimary-dark mb-3">
                 {t('dashboard.info.architectureCardTitle')}
               </h3>
-              <div className="space-y-2 text-sm text-textSecondary dark:text-textSecondary-dark">
+              <div className="space-y-1 text-xs text-textSecondary dark:text-textSecondary-dark">
                 <div className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-textSecondary dark:text-textSecondary-dark">
-                    {t('dashboard.info.architecture.nginx')}
-                  </span>
+                  <span>{t('dashboard.info.architecture.nginx')}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-textSecondary dark:text-textSecondary-dark">
-                    {t('dashboard.info.architecture.frontend')}
-                  </span>
+                  <span>{t('dashboard.info.architecture.frontend')}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-textSecondary dark:text-textSecondary-dark">
-                    {t('dashboard.info.architecture.backend')}
-                  </span>
+                  <span>{t('dashboard.info.architecture.backend')}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-textSecondary dark:text-textSecondary-dark">
-                    {t('dashboard.info.architecture.database')}
-                  </span>
+                  <span>{t('dashboard.info.architecture.database')}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-textSecondary dark:text-textSecondary-dark">
-                    {t('dashboard.info.architecture.auth')}
-                  </span>
+                  <span>{t('dashboard.info.architecture.auth')}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8">
+          <div className="mt-4">
             <Counter />
           </div>
 
-          {jwtToken && (
-            <div className="mt-8 card rounded-lg p-6">
-              <h3 className="font-semibold text-textPrimary dark:text-textPrimary-dark mb-3">
-                JWT (current session)
-              </h3>
-              <p className="text-xs text-textSecondary dark:text-textSecondary-dark mb-3">
-                This token is used to authenticate your requests. Do not share it.
-              </p>
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <span className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
-                  Length: {jwtToken.length} characters
-                </span>
-                <button
-                  type="button"
-                  onClick={() => navigator.clipboard.writeText(jwtToken)}
-                  className="px-3 py-1.5 rounded-md border border-border dark:border-border-dark text-xs font-medium text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark transition-colors"
-                >
-                  Copy JWT
-                </button>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {jwtToken && (
+              <div className="card rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-sm text-textPrimary dark:text-textPrimary-dark">
+                    JWT (current session)
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-textSecondary dark:text-textSecondary-dark">
+                      {jwtToken.length} chars
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(jwtToken)}
+                      className="px-2 py-1 rounded border border-border dark:border-border-dark text-xs text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-24 overflow-auto rounded bg-background dark:bg-background-dark border border-border dark:border-border-dark">
+                  <pre className="text-[10px] leading-snug p-2 font-mono break-all text-textSecondary dark:text-textSecondary-dark">
+                    {jwtToken}
+                  </pre>
+                </div>
               </div>
-              <div className="max-h-40 overflow-auto rounded-md bg-background dark:bg-background-dark border border-border dark:border-border-dark">
-                <pre className="text-[11px] leading-snug p-3 font-mono break-all text-textSecondary dark:text-textSecondary-dark">
-                  {jwtToken}
-                </pre>
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="mt-8 card rounded-lg p-6">
-            <h3 className="font-semibold text-textPrimary dark:text-textPrimary-dark mb-4">
-              {t('dashboard.security.sectionTitle')}
-            </h3>
-            <div className="space-y-4">
+            <div className={`card rounded-lg p-4 ${!jwtToken ? 'md:col-span-2' : ''}`}>
+              <h3 className="font-semibold text-sm text-textPrimary dark:text-textPrimary-dark mb-3">
+                {t('dashboard.security.sectionTitle')}
+              </h3>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-textPrimary dark:text-textPrimary-dark">
+                  <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
                     {t('dashboard.security.twoFactorLabel')}
                   </p>
-                  <p className="text-sm text-textSecondary dark:text-textSecondary-dark">
+                  <p className="text-xs text-textSecondary dark:text-textSecondary-dark">
                     {user.twoFactorEnabled
                       ? t('dashboard.security.twoFactorEnabledDescription')
                       : t('dashboard.security.twoFactorDisabledDescription')}
                   </p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    user.twoFactorEnabled 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' 
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    user.twoFactorEnabled
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
                       : 'bg-primary text-textPrimary dark:bg-surface-dark dark:text-textPrimary-dark'
                   }`}>
                     {user.twoFactorEnabled
@@ -222,14 +211,14 @@ const Dashboard = () => {
                   {user.twoFactorEnabled ? (
                     <button
                       onClick={() => setShowDisable2FA(true)}
-                      className="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="px-3 py-1 text-xs border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       {t('dashboard.security.buttons.disable')}
                     </button>
                   ) : (
                     <button
                       onClick={() => setShow2FASetup(true)}
-                      className="px-4 py-2 bg-secondary text-secondary-on-light dark:text-secondary-on-dark rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-secondary"
+                      className="px-3 py-1 text-xs bg-secondary text-secondary-on-light dark:text-secondary-on-dark rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-secondary"
                     >
                       {t('dashboard.security.buttons.enable2fa')}
                     </button>
@@ -239,8 +228,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="mt-8 bg-primary rounded-lg p-4 border border-border dark:border-border-dark text-primary-on-light dark:text-primary-on-dark">
-            <p className="text-sm">
+          <div className="mt-4 bg-primary rounded-lg px-4 py-2 border border-border dark:border-border-dark text-primary-on-light dark:text-primary-on-dark">
+            <p className="text-xs">
               <span className="font-semibold">{t('dashboard.security.note.label')}</span>{' '}
               {t('dashboard.security.note.text')}
             </p>

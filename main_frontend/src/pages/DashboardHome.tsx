@@ -28,17 +28,17 @@ const DashboardHome = () => {
   const firstName = (user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? '').toUpperCase();
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] py-10">
+    <div className="py-4">
       <div className="page-container">
-        <div className="text-center space-y-2 mb-10">
+        <div className="text-center space-y-1 mb-5">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase text-secondary">
             {t('dashboard.home.welcome', { name: firstName })}
           </p>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-textPrimary dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-textPrimary dark:text-white">
             {t('dashboard.home.titlePrefix')}{' '}
             <span className="text-secondary">{t('dashboard.home.titleHighlight')}</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-textSecondary dark:text-textSecondary-dark">
+          <p className="max-w-2xl mx-auto text-xs sm:text-sm text-textSecondary dark:text-textSecondary-dark">
             {t('dashboard.home.description')}
           </p>
         </div>
