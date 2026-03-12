@@ -1,6 +1,35 @@
+export async function proxyRestGet(path: string): Promise<unknown> {
+  const apiUrl = process.env.DECOMPTE_API_BASE;
+  const apiKey = process.env.DECOMPTE_API_KEY;
+  const apiToken = process.env.DECOMPTE_API_BEARER;
+
+  if (!apiUrl || !apiKey || !apiToken) {
+    throw new Error('Decompte API credentials not configured.');
+  }
+
+  const restBase = new URL(apiUrl).origin;
+  const url = `${restBase}${path}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'x-api-key': apiKey, 'Authorization': `Bearer ${apiToken}` },
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    const error: any = new Error('Proxy REST request failed');
+    error.response = {
+      status: response.status,
+      data: text.startsWith('{') || text.startsWith('[') ? JSON.parse(text) : { message: text },
+    };
+    throw error;
+  }
+  return JSON.parse(text);
+}
+
 /**
  * Proxies a GraphQL query to the internal API using credentials from environment variables.
- * 
+ *
  * @param query The GraphQL query string to execute.
  * @returns The response data from the internal API.
  */

@@ -4,7 +4,9 @@
       "Bash(docker-compose restart:*)",
       "Bash(docker-compose logs:*)",
       "Bash(cd \"C:\\\\Dev\\\\myr\" && bash nginx/generate-dev-certs.sh)",
-      "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost/ && echo \"\" && curl -o /dev/null -w \"%{http_code}\" http://localhost/ 2>/dev/null && echo \"\")"
+      "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost/ && echo \"\" && curl -o /dev/null -w \"%{http_code}\" http://localhost/ 2>/dev/null && echo \"\")",
+      "Bash(find /c/Dev/myr/backend/src -name \"*proxy*\" -o -name \"*tickets*\" 2>/dev/null | head -20)",
+      "Bash(grep -r \"proxy/tickets\" /c/Dev/myr/backend/src --include=\"*.ts\" 2>/dev/null | head -5)"
     ]
   }
 }

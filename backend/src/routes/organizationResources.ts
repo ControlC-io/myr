@@ -16,7 +16,7 @@ import prisma from '../lib/prisma';
 import { MemberRole } from '@prisma/client';
 import { checkOrganizationAccess } from '../middleware/auth';
 import { createAuditLog } from '../middleware/auditLog';
-import { proxyGraphQL } from '../services/proxyService';
+import { proxyGraphQL, proxyRestGet } from '../services/proxyService';
 import { buildSupplierQuery, buildTicketsQuery } from '../services/decompteQueries';
 
 const router = express.Router();
@@ -374,6 +374,44 @@ router.post(
       const remoteStatus = error.response?.status;
       const httpStatus = remoteStatus ? 502 : 500;
       res.status(httpStatus).json({
+        error: 'Proxy request failed',
+        details: error.response?.data || error.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/orgs/:orgId/proxy/factures
+// Proxies a REST request for billing documents.
+// Minimum role: VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/:orgId/proxy/factures',
+  checkOrganizationAccess(MemberRole.VIEWER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId } = req.params;
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) { res.status(404).json({ error: 'Organization not found' }); return; }
+      if (!org.externalReferenceId) { res.status(403).json({ error: 'Organization has no linked supplier' }); return; }
+
+      const data = await proxyRestGet(`/api/accounting/${encodeURIComponent(org.externalReferenceId)}/docs`);
+
+      await createAuditLog(
+        'PROXY_API_CALL',
+        req.user!.userId,
+        { orgId, externalReferenceId: org.externalReferenceId, endpoint: 'factures' },
+        orgId,
+      );
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Proxy factures request failed:', error);
+      const remoteStatus = error.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
         error: 'Proxy request failed',
         details: error.response?.data || error.message,
         remoteStatus,

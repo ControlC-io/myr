@@ -2,25 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { getJson } from "../../api/client";
 import { useAuth } from "@shared/auth";
 
-export type DecompteItem = {
-  Client: number;
-  Bl_Adm: number;
-  Bl_TICAL: number;
-  Facture: string;
-  Libelle: string;
-  Emission: string;
-  Echeance: string;
-  Mnt_Init: string;
-  Solde: string;
-  Blq: number;
-  Plainte: string;
-  Debut: string;
-  Fin: string;
-  Relance: number;
-  Rappel: number;
-  dummy?: string;
-  amount?: string;
-  solde?: string;
+export type DocItem = {
+  id: number;
+  client_id: number;
+  number: string;
+  description: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  sentDate: string | null;
+  amount: string;
+  due_date: string | null;
+  is_open: boolean;
 };
 
 export const decompteQueryKeys = {
@@ -28,27 +20,33 @@ export const decompteQueryKeys = {
   client: (clientId: string | number) => ["decompte", "client", clientId] as const,
 };
 
-export function useDecompte(clientId: string = "400000037") {
-  const { jwtToken } = useAuth();
+function extractRows(raw: unknown): DocItem[] {
+  if (Array.isArray(raw)) return raw as DocItem[];
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    for (const key of ['data', 'docs', 'items', 'factures', 'invoices', 'documents']) {
+      if (Array.isArray(obj[key])) return obj[key] as DocItem[];
+    }
+  }
+  return [];
+}
 
-  return useQuery<DecompteItem[]>({
-    queryKey: decompteQueryKeys.client(clientId),
-    enabled: !!jwtToken,
-    queryFn: () => {
+export function useDecompte(orgId: string | null) {
+  const { jwtToken, jwtLoading } = useAuth();
+
+  return useQuery<DocItem[]>({
+    queryKey: decompteQueryKeys.client(orgId ?? ''),
+    enabled: !!jwtToken && !jwtLoading && !!orgId,
+    queryFn: async () => {
       if (!jwtToken) {
-        return Promise.reject(
-          new Error("No JWT token available. Please log out and log in again."),
-        );
+        return Promise.reject(new Error("No JWT token available."));
       }
-
-      return getJson<DecompteItem[]>(
-        `/accounting/${clientId}/decompte`,
+      const raw = await getJson<unknown>(
+        `/orgs/${orgId}/proxy/factures`,
         undefined,
-        {
-          Authorization: `Bearer ${jwtToken}`,
-        },
+        { Authorization: `Bearer ${jwtToken}` },
       );
+      return extractRows(raw);
     },
   });
 }
-
