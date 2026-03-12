@@ -35,21 +35,25 @@ app.use(cors({ origin: process.env.TRUSTED_ORIGINS?.split(',') }));
 
 ---
 
-### 3. No TLS
-**File:** `nginx/nginx.conf`
+### 3. ~~No TLS~~ — RESOLVED
 
-NGINX only listens on port 80 and 8080. Port 443 is mentioned in `CLAUDE.md` but there is no server block for it. All traffic — sessions, JWTs, credentials — is unencrypted in transit.
+TLS is now active on both frontends. Self-signed certificates are used for local development.
 
-**Fix:** Add a TLS server block in nginx.conf, or terminate TLS at a load balancer / reverse proxy upstream of NGINX. HSTS should be added once TLS is in place.
+**What was added:**
+- `nginx/certs/localhost.crt` + `localhost.key` — self-signed dev cert (gitignored, generated locally)
+- `nginx/generate-dev-certs.sh` — one-time cert generation script (run before first `docker-compose up`)
+- `nginx/nginx.conf` — HTTP 80 → HTTPS 443 redirect + TLS server block for main frontend; HTTP 8080 → HTTPS 8443 redirect + TLS server block for admin frontend
+- `docker-compose.yml` — port 8443 exposed, `./nginx/certs` mounted read-only into nginx container
+- HSTS header added: `Strict-Transport-Security: max-age=31536000`
+- TLS 1.2 + 1.3 only, strong cipher suite
+
+**For production:** replace `nginx/certs/localhost.crt` and `localhost.key` with real certificates from your CA or Let's Encrypt (certbot). The nginx.conf paths stay the same (`/etc/nginx/certs/`). Increase HSTS `max-age` to `63072000` and add `; includeSubDomains; preload`.
 
 ---
 
-### 4. Old tickets route still accessible
-**File:** `backend/src/routes/tickets.ts`
+### 4. ~~Old tickets route still accessible~~ — RESOLVED
 
-`POST /api/tickets/graphql` accepts `suppliersIdAssign` directly from the request body. Any user with a valid JWT can query **any supplier's tickets** by supplying an arbitrary ID. The new org-scoped route (`POST /api/orgs/:orgId/proxy/tickets`) fixes the frontend, but the old route remains a privilege escalation vector.
-
-**Fix:** Remove or disable `backend/src/routes/tickets.ts` and its registration in `index.ts`, or at minimum enforce that `suppliersIdAssign` matches the caller's org `externalReferenceId`.
+`backend/src/routes/tickets.ts` and its registration in `index.ts` have been removed. `POST /api/tickets/graphql` no longer exists. All ticket access now goes through `POST /api/orgs/:orgId/proxy/tickets` which enforces org membership.
 
 ---
 
@@ -68,24 +72,9 @@ The entire `/api/admin` prefix is excluded from `jwtAuth` (see `PUBLIC_ROUTES` i
 
 ---
 
-### 6. `externalReferenceId` injected into GraphQL query without validation
-**Files:** `backend/src/routes/organizationResources.ts` (supplier and tickets proxy routes)
+### 6. ~~`externalReferenceId` injected into GraphQL query without validation~~ — RESOLVED
 
-```ts
-const supplierId = org.externalReferenceId;
-const query = `... suppliers_id_assign: ${supplierId} ...`;
-```
-
-`externalReferenceId` is a free-form `String?` column. If it contains GraphQL metacharacters (e.g. `1} { __schema`), this is a GraphQL injection. The value comes from the database but was originally set via an admin or seeding operation — any path that writes it should be treated as untrusted.
-
-**Fix:** Before interpolation, assert the value is a valid integer:
-```ts
-const supplierId = parseInt(org.externalReferenceId, 10);
-if (isNaN(supplierId)) {
-  res.status(403).json({ error: 'Organization has no valid supplier reference' });
-  return;
-}
-```
+All query construction is now centralized in `backend/src/services/decompteQueries.ts`. The `validateSupplierId()` function asserts the value is a positive integer before any interpolation occurs. The `orderByDesc` parameter is sanitized to `[a-zA-Z_]` only. Both proxy routes catch the validation error and return 403. The old `tickets.ts` route that had no validation has been deleted.
 
 ---
 
@@ -210,9 +199,9 @@ NGINX passes `$proxy_add_x_forwarded_for` but there is no `set_real_ip_from` / `
 |---|---|---|
 | 1 | ~~Investigate and remove agent log blocks~~ — DONE | ~~Critical~~ |
 | 2 | Fix CORS: pass `TRUSTED_ORIGINS` to cors() | Critical |
-| 3 | Add TLS to NGINX | Critical |
-| 4 | Remove or auth-gate `POST /api/tickets/graphql` | Critical |
-| 5 | Validate `externalReferenceId` as integer before GraphQL interpolation | High |
+| 3 | ~~Add TLS to NGINX~~ — DONE | ~~Critical~~ |
+| 4 | ~~Remove `POST /api/tickets/graphql`~~ — DONE | ~~Critical~~ |
+| 5 | ~~Validate `externalReferenceId` as integer before GraphQL interpolation~~ — DONE | ~~High~~ |
 | 6 | Hash 2FA backup codes and OTP values | High |
 | 7 | Add rate limiting on auth and proxy routes | High |
 | 8 | Add user identity to admin actions / audit log | High |

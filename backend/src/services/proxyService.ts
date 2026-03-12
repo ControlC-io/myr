@@ -13,8 +13,10 @@ export async function proxyGraphQL(query: string): Promise<any> {
     throw new Error('Decompte API credentials not configured in environment (DECOMPTE_API_BASE, DECOMPTE_API_KEY, DECOMPTE_API_BEARER).');
   }
 
+  const graphqlUrl = apiUrl.replace(/\/+$/, '');
+
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(graphqlUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,7 +30,7 @@ export async function proxyGraphQL(query: string): Promise<any> {
 
     if (!response.ok) {
       console.error('Internal API proxy call failed:', {
-        url: apiUrl,
+        url: graphqlUrl,
         status: response.status,
         statusText: response.statusText,
         body: text

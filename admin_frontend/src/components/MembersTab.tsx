@@ -292,7 +292,7 @@ const MembersTab = () => {
               <>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-border dark:divide-border-dark text-sm">
-                    <thead className="bg-background dark:bg-background-dark">
+                    <thead className="table-header">
                       <tr>
                         {['User', 'Email', 'Role', ''].map((h) => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-medium text-textSecondary dark:text-textSecondary-dark uppercase tracking-wider">{h}</th>

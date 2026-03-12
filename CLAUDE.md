@@ -72,6 +72,8 @@ Then run backend and frontends locally. Set `DATABASE_URL` in backend `.env` to 
 | `backend/src/middleware/adminAuth.ts` | Admin-only guard (checks `admin` role) |
 | `backend/src/services/rbacService.ts` | RBAC logic: resolves user roles → allowed endpoints |
 | `backend/src/services/organizationAccessService.ts` | Validates user membership in org before scoped access |
+| `backend/src/services/proxyService.ts` | `proxyGraphQL()` — single caller for the Decompte external GraphQL API |
+| `backend/src/services/decompteQueries.ts` | All Decompte GraphQL query builders (`buildSupplierQuery`, `buildTicketsQuery`). Update here when the external API changes fields or arguments. |
 | `backend/src/lib/rbac.ts` | RBAC helpers and role constants |
 | `backend/prisma/schema.prisma` | 20-model schema: User, Org, Member, Role, AuditLog, etc. |
 | `shared/auth/AuthProvider.tsx` | React context: session + JWT state, `useAuth()` hook |

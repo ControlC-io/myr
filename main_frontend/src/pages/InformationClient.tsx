@@ -236,14 +236,14 @@ export default function InformationClient() {
         {/* Info Cards Grid */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Company Info */}
-          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
-            <div className="px-4 py-3 bg-pink/10 dark:bg-pink/5 border-b border-border/10 flex items-center gap-2">
-              <span className="p-1 rounded bg-pink/20 text-pink">
+          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm flex flex-col overflow-hidden">
+            <div className="px-4 py-3 bg-secondary dark:bg-pink text-white border-b border-border/10 flex items-center gap-2">
+              <span className="p-1 rounded bg-white/15 text-white">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </span>
-              <h2 className="text-sm font-bold text-textPrimary dark:text-textPrimary-dark">
+              <h2 className="text-sm font-bold">
                 {t("pages.customerInfo.sections.company")}
               </h2>
             </div>
@@ -257,15 +257,15 @@ export default function InformationClient() {
           </div>
 
           {/* Address Info */}
-          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
-            <div className="px-4 py-3 bg-pink/10 dark:bg-pink/5 border-b border-border/10 flex items-center gap-2">
-              <span className="p-1 rounded bg-pink/20 text-pink">
+          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm flex flex-col overflow-hidden">
+            <div className="px-4 py-3 bg-secondary dark:bg-pink text-white border-b border-border/10 flex items-center gap-2">
+              <span className="p-1 rounded bg-white/15 text-white">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </span>
-              <h2 className="text-sm font-bold text-textPrimary dark:text-textPrimary-dark">
+              <h2 className="text-sm font-bold">
                 {t("pages.customerInfo.sections.address")}
               </h2>
             </div>
@@ -279,14 +279,14 @@ export default function InformationClient() {
           </div>
 
           {/* Contacts Summary */}
-          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
-            <div className="px-4 py-3 bg-pink/10 dark:bg-pink/5 border-b border-border/10 flex items-center gap-2">
-              <span className="p-1 rounded bg-pink/20 text-pink">
+          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm flex flex-col overflow-hidden">
+            <div className="px-4 py-3 bg-secondary dark:bg-pink text-white border-b border-border/10 flex items-center gap-2">
+              <span className="p-1 rounded bg-white/15 text-white">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 15.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </span>
-              <h2 className="text-sm font-bold text-textPrimary dark:text-textPrimary-dark">
+              <h2 className="text-sm font-bold">
                 {t("pages.customerInfo.sections.contactsSummary")}
               </h2>
             </div>
@@ -331,28 +331,27 @@ export default function InformationClient() {
             </span>
           </div>
 
-          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl shadow-sm overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-pink via-secondary to-pink/50"></div>
+          <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-black-purple/5 dark:bg-white/5 border-b border-border/10">
-                    <th className="px-6 py-4 text-[11px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest">
+                <thead className="table-header">
+                  <tr>
+                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       Name
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       Phone
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       Phone 2
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       Mobile
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       Email
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       Roles
                     </th>
                   </tr>

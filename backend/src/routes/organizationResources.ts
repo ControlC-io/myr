@@ -17,6 +17,7 @@ import { MemberRole } from '@prisma/client';
 import { checkOrganizationAccess } from '../middleware/auth';
 import { createAuditLog } from '../middleware/auditLog';
 import { proxyGraphQL } from '../services/proxyService';
+import { buildSupplierQuery, buildTicketsQuery } from '../services/decompteQueries';
 
 const router = express.Router();
 
@@ -259,8 +260,13 @@ router.post(
 
       const supplierId = org.externalReferenceId;
 
-      // Construct the GraphQL query in the backend using the organization's externalReferenceId
-      const query = `{ supplier(id: ${supplierId}) { data { address address_comment country email fax id name num_tva phonenumber postcode raisonsociale town contacts { is_deleted contact { id firstname name email lang isRgroupPerson } roles { contactroles { name } } } } } }`;
+      let query: string;
+      try {
+        query = buildSupplierQuery(supplierId);
+      } catch {
+        res.status(403).json({ error: 'Organization has no valid supplier reference' });
+        return;
+      }
 
       const data = await proxyGraphQL(query);
 
@@ -344,37 +350,13 @@ router.post(
         orderByDesc?: string;
       };
 
-      const query = `{
-      ticket(
-        suppliers_id_assign: ${supplierId},
-        paginLimit: ${paginLimit},
-        paginPage: ${paginPage},
-        orderByDesc: "${orderByDesc}"
-      ) {
-        data {
-          solvedate
-          content
-          date
-          id
-          name
-          status
-          intervention_date
-          is_cyber_incident
-          priority_v2
-          tical_numero_prj
-          ticketcategories { name }
-          user_assign { realname firstname }
-          group_assign { name }
-          interventions {
-            non_facturable
-            desc_facturation
-            preste
-            date_begin
-          }
-          supplier { id }
-        }
+      let query: string;
+      try {
+        query = buildTicketsQuery({ supplierId, paginLimit, paginPage, orderByDesc });
+      } catch {
+        res.status(403).json({ error: 'Organization has no valid supplier reference' });
+        return;
       }
-    }`;
 
       const externalJson = await proxyGraphQL(query) as { data?: { ticket?: unknown } };
 

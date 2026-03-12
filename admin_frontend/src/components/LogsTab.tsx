@@ -100,18 +100,18 @@ const LogsTab = () => {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-background dark:bg-background-dark border-b border-border dark:border-border-dark">
+            <thead className="table-header border-b border-border dark:border-border-dark">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary dark:text-textSecondary-dark uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Timestamp
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary dark:text-textSecondary-dark uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Action
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary dark:text-textSecondary-dark uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   User ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary dark:text-textSecondary-dark uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Details
                 </th>
               </tr>

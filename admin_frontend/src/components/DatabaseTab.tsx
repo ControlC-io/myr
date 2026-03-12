@@ -210,7 +210,7 @@ const DatabaseTab = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border dark:divide-border-dark text-sm">
-                <thead className="bg-background dark:bg-background-dark">
+                <thead className="table-header">
                   <tr>
                     {columnKeys.map((key) => (
                       <th

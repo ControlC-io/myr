@@ -129,7 +129,11 @@ These models power the centralized JWT middleware and are separate from tenant `
 
 The Backend acts as a **Secure Gateway** between the DMZ and the Internal Infrastructure.
 
-
+> **Note on the architecture diagram (`docs/assets/multi_tenant_architecture_auth_spec.png`):**
+> The diagram is a target-state design and includes elements not yet implemented:
+> - "Rate Limiting / Threat Detection" — not implemented (open item in SECURITY_REVIEW.md).
+> - "Route Validation Service", "Analytics/Audit", "User Profile Service" — aspirational internal APIs, not present in current code.
+> What is implemented today: the Secure Gateway (backend), PostgreSQL, JWT + org-level RBAC middleware, and the Decompte proxy routes.
 
 ### 2.1 Deep Validation Middleware
 Every request to a protected endpoint must pass through the `checkOrganizationAccess` middleware:
@@ -141,7 +145,7 @@ Every request to a protected endpoint must pass through the `checkOrganizationAc
 ### 2.2 Internal Proxy Pattern
 Once authorized, the Backend performs the request to the internal private API:
 * **Input**: Organization ID and user intent.
-* **Backend Action**: Executes a secure call (fetch/axios) to the internal URL.
+* **Backend Action**: Executes a secure call (native `fetch`) to the internal URL.
 * **Output**: Data is returned to the Frontend only after successful authorization and optional data sanitization.
 
 Concretely, the implementation today uses:
@@ -155,10 +159,16 @@ Concretely, the implementation today uses:
   - Validate membership in `Member` and role hierarchy based on `MemberRole`.
   - Attach `req.orgMember` for downstream handlers.
 
-Example tenant‑aware route (implemented in `backend/src/routes/organizationResources.ts`):
+The external API proxy uses two dedicated services (native `fetch`, no axios):
+- `backend/src/services/proxyService.ts` — single HTTP caller for the Decompte GraphQL endpoint. Reads `DECOMPTE_API_BASE`, `DECOMPTE_API_KEY`, `DECOMPTE_API_BEARER` from env. All external API calls go through here.
+- `backend/src/services/decompteQueries.ts` — all GraphQL query builders (`buildSupplierQuery`, `buildTicketsQuery`). Also validates `externalReferenceId` as a safe integer before interpolation. **This is the only file to update when the external API changes its query structure.**
+
+Example tenant‑aware routes (implemented in `backend/src/routes/organizationResources.ts`):
 
 - `GET /api/orgs/{orgId}/profile` – requires at least `VIEWER`.
 - `GET /api/orgs/{orgId}/audit-logs` – requires at least `ADMIN` and is fully paginated.
+- `POST /api/orgs/{orgId}/proxy/supplier` – requires `VIEWER`. Proxies GraphQL to Decompte using `org.externalReferenceId` as the supplier ID.
+- `POST /api/orgs/{orgId}/proxy/tickets` – requires `VIEWER`. Same pattern, returns paginated ticket list.
 
 ---
 
@@ -176,6 +186,7 @@ All listing endpoints (Logs, Users, Settings) must implement standard pagination
 * **Toggle**: `User.twoFactorEnabled` indicates whether 2FA is active for the account.  
 * **Audit logs**: sign‑in, sign‑up and sign‑out flows emit `SIGN_IN`, `SIGN_UP`, `SIGN_OUT` entries in `AuditLog` via Better Auth hooks.
 
-**Planned / optional extension (future)**  
-* **Email‑based OTP** using the `email_service` (SendGrid) can be added on top of the TOTP baseline for environments that prefer email codes instead of authenticator apps.  
-* All email secrets must remain in the internal network `.env` and be accessed only via internal services.
+**Email OTP (implemented)**
+* **Email‑based OTP** via `email_service` (SendGrid) is implemented and active. Users can choose to receive a 6-digit OTP by email instead of using an authenticator app.
+* Login flow: `Login.tsx` → detects `emailOtpRequired` → `/auth/email-otp` → `EmailOtpChallenge.tsx` → `verifyEmailOtp()`.
+* All email secrets remain in the internal network `.env` and are accessed only via the `email_service` microservice.

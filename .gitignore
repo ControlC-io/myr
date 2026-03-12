@@ -41,6 +41,11 @@ Thumbs.db
 # Docker volumes
 postgres_data/
 
+# TLS certificates (generated locally, never commit private keys)
+nginx/certs/*.crt
+nginx/certs/*.key
+nginx/certs/*.pem
+
 # Temporary files
 *.tmp
 *.temp

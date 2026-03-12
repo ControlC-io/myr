@@ -17,7 +17,6 @@ import adminRouter from './routes/admin';
 import rolesRouter from './routes/roles';
 import counterRouter from './routes/counter';
 import accountingRouter from './routes/accounting';
-import ticketsRouter from './routes/tickets';
 import orgResourcesRouter from './routes/organizationResources';
 
 const app = express();
@@ -113,9 +112,6 @@ app.use('/api/counter', counterRouter);
 
 // ─── Accounting Routes (JWT protected, external decompte proxy) ─────────────
 app.use('/api/accounting', accountingRouter);
-
-// ─── Tickets Routes (JWT protected, external GraphQL proxy) ─────────────────
-app.use('/api/tickets', ticketsRouter);
 
 // ─── Tenant-scoped Org Routes (JWT protected, org membership enforced per route) ─
 app.use('/api/orgs', orgResourcesRouter);

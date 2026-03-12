@@ -177,7 +177,7 @@ const DashboardCard = ({ link, label, onClick }: CardProps) => {
     <button
       type="button"
       onClick={onClick}
-      className="relative group flex flex-col items-center justify-center gap-2 p-3 rounded-xl
+      className="relative group flex flex-col items-center justify-center gap-2 p-3 card--square-tl
         bg-white dark:bg-surface-dark
         border border-border dark:border-white/10
         hover:border-secondary/50 dark:hover:border-white/25
