@@ -197,11 +197,12 @@ router.post('/token', async (req: Request, res: Response): Promise<void> => {
     if (user.twoFactorEnabled) {
       const identifier = `${OTP_IDENTIFIER_PREFIX}${user.id}`;
       const code = generateOtp();
+      const codeHash = await bcrypt.hash(code, 10);
       const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
       // Replace any previous pending OTP for this user
       await prisma.verification.deleteMany({ where: { identifier } });
-      await prisma.verification.create({ data: { identifier, value: code, expiresAt } });
+      await prisma.verification.create({ data: { identifier, value: codeHash, expiresAt } });
 
       await sendOtp(user.email, code, OTP_EXPIRY_MINUTES);
 
@@ -323,9 +324,10 @@ router.post('/request-email-otp', async (req: Request, res: Response): Promise<v
 
     const identifier = `${OTP_IDENTIFIER_PREFIX}${user.id}`;
     const code = generateOtp();
+    const codeHash = await bcrypt.hash(code, 10);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     await prisma.verification.deleteMany({ where: { identifier } });
-    await prisma.verification.create({ data: { identifier, value: code, expiresAt } });
+    await prisma.verification.create({ data: { identifier, value: codeHash, expiresAt } });
     await sendOtp(user.email, code, OTP_EXPIRY_MINUTES);
 
     res.json({ userId: user.id });
@@ -423,7 +425,8 @@ router.post('/verify-otp', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    if (verification.value !== code) {
+    const codeValid = await bcrypt.compare(code, verification.value);
+    if (!codeValid) {
       res.status(401).json({ error: 'Invalid OTP' });
       return;
     }

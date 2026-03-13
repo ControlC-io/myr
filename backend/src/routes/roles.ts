@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendError } from '../lib/sendError';
+import { invalidateRbacCache } from '../lib/rbac';
 
 const router = express.Router();
 
@@ -274,6 +275,7 @@ router.post('/roles/:id/endpoints', async (req: Request, res: Response): Promise
         method: normalizedMethod,
       },
     });
+    invalidateRbacCache();
     res.status(201).json(mapping);
   } catch (error: any) {
     if (error?.code === 'P2002') {
@@ -318,6 +320,7 @@ router.post('/roles/:id/endpoints', async (req: Request, res: Response): Promise
 router.delete('/roles/:id/endpoints/:mappingId', async (req: Request, res: Response): Promise<void> => {
   try {
     await prisma.roleEndpointMapping.delete({ where: { id: req.params.mappingId } });
+    invalidateRbacCache();
     res.status(204).send();
   } catch (error: any) {
     if (error?.code === 'P2025') {

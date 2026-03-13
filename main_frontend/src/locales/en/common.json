@@ -1,4 +1,19 @@
 {
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{page}}",
+    "pageOf": "Page {{page}} of {{totalPages}}",
+    "showing": "Showing {{from}} to {{to}} of {{total}}",
+    "perPage": "per page"
+  },
+  "filters": {
+    "search": "Search...",
+    "status": "Status",
+    "all": "All",
+    "dateFrom": "From",
+    "dateTo": "To"
+  },
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",
@@ -207,6 +222,16 @@
       "opened": "Opened",
       "status": "Status",
       "solved": "Solved"
+    }
+  },
+  "orders": {
+    "columns": {
+      "reference": "Reference",
+      "description": "Description",
+      "date": "Order Date",
+      "deliveryDate": "Delivery Date",
+      "amount": "Amount",
+      "status": "Status"
     }
   },
   "billing": {

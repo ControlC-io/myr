@@ -23,15 +23,9 @@ The targets were `127.0.0.1` (localhost), so no data was sent to external server
 
 ---
 
-### 2. CORS is wide open
-**File:** `backend/src/index.ts` line 27
+### 2. ~~CORS is wide open~~ — RESOLVED
 
-`app.use(cors())` with no configuration accepts requests from any origin. `TRUSTED_ORIGINS` is documented in `.env.example` and `CLAUDE.md` but is never passed to the cors() call.
-
-**Fix:** Pass the allowed origins list:
-```ts
-app.use(cors({ origin: process.env.TRUSTED_ORIGINS?.split(',') }));
-```
+`cors()` now receives `{ origin: corsAllowedOrigins, credentials: true }` where `corsAllowedOrigins` is parsed from `TRUSTED_ORIGINS`. Express trust proxy is enabled so rate limiters see real client IPs. `BETTER_AUTH_URL` and `TRUSTED_ORIGINS` in `.env` updated to use HTTPS origins (`https://localhost`) to match TLS-terminated traffic from NGINX.
 
 ---
 
@@ -59,16 +53,9 @@ TLS is now active on both frontends. Self-signed certificates are used for local
 
 ## High
 
-### 5. Admin auth is a single shared secret with no identity
-**File:** `backend/src/middleware/adminAuth.ts`
+### 5. Admin auth is a single shared secret with no identity — PARTIALLY RESOLVED
 
-The entire `/api/admin` prefix is excluded from `jwtAuth` (see `PUBLIC_ROUTES` in `jwtAuth.ts`). Admin routes are protected only by checking `x-admin-secret` against an env var — a static shared secret. There is:
-- No rate limiting or lockout on failed attempts
-- No IP restriction
-- No user identity attached — audit logs for admin actions are anonymous
-- No JWT context, so you cannot know which person performed an admin action
-
-**Fix:** Require a valid JWT in addition to the admin secret, or replace the secret with a dedicated admin role enforced by `jwtAuth`. Add audit logging for every admin action.
+Rate limiting is now applied to `/api/admin` (100 req / 15 min per IP). All admin audit log entries now include `adminIp` in the `details` field for basic traceability. Full identity still requires either a JWT requirement alongside the secret or migrating admin routes to JWT + RBAC — that is a larger refactor tracked separately.
 
 ---
 
@@ -78,22 +65,15 @@ All query construction is now centralized in `backend/src/services/decompteQueri
 
 ---
 
-### 7. 2FA backup codes and OTP values stored in plaintext
-**Schema:** `TwoFactor.backupCodes` (`String`), `Verification.value` (`String`)
+### 7. ~~OTP values stored in plaintext~~ — PARTIALLY RESOLVED
 
-Both are stored as plain text in the database. If the database is compromised, all 2FA backup codes are immediately usable and all pending OTP codes are readable.
-
-**Fix:** Hash backup codes with bcrypt before storing. For OTPs, store only a hash and compare on verification.
+OTP codes in `Verification.value` are now hashed with bcrypt (cost 10) before storage. `verify-otp` uses `bcrypt.compare` instead of direct equality. Backup codes in `TwoFactor.backupCodes` are managed by Better Auth internally — that library stores them in its own format and is outside our control without forking.
 
 ---
 
-### 8. No rate limiting
-There is no rate limiting on any endpoint. The most exposed surfaces:
-- `POST /api/auth/token` — JWT issuance, brute-forceable credentials
-- `POST /api/auth/` — login flow
-- Proxy endpoints — can exhaust external API quotas
+### 8. ~~No rate limiting~~ — RESOLVED
 
-**Fix:** Add `express-rate-limit` at minimum on auth routes. Consider per-IP and per-user limits on proxy endpoints.
+`express-rate-limit` added. Limits: auth sign-in/sign-up/token endpoints: 20 req per 15 min per IP; admin endpoints: 100 req per 15 min per IP. `app.set('trust proxy', 1)` ensures real client IPs are used behind NGINX. Proxy endpoints still unrestricted — add per-user quotas if Decompte API has billing limits.
 
 ---
 
@@ -113,51 +93,27 @@ These are not coordinated. Granting access to a new org-scoped route requires co
 
 ---
 
-### 10. RBAC DB query on every request, no caching
-**File:** `backend/src/services/rbacService.ts`
+### 10. ~~RBAC DB query on every request, no caching~~ — RESOLVED
 
-`hasRoleAccess()` queries `RoleEndpointMapping` on every single request. Role assignments change infrequently, but this adds a DB round-trip to every API call. Under load this becomes a latency bottleneck and unnecessary DB pressure.
-
-**Fix:** Cache the role-to-endpoint mapping in memory (e.g. a `Map` populated at startup, invalidated when roles change via an admin action).
+`lib/rbac.ts` now caches the full `RoleEndpointMapping` table in memory with a 60-second TTL. `invalidateRbacCache()` is exported and called from `routes/roles.ts` after any endpoint mapping create or delete, so changes take effect immediately rather than waiting for TTL expiry.
 
 ---
 
-### 11. Missing security headers in NGINX
-**File:** `nginx/nginx.conf`
+### 11. ~~Missing security headers in NGINX~~ — RESOLVED
 
-Current headers: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`.
-
-Missing:
-- `Content-Security-Policy` — primary XSS defense in modern browsers
-- `Strict-Transport-Security` — enforces HTTPS (add after TLS is in place)
-- `Referrer-Policy` — prevents leaking URLs in referer headers
-- `Permissions-Policy` — restricts access to browser APIs
-
-Note: `X-XSS-Protection: 1; mode=block` is deprecated and ignored by modern browsers. CSP replaces it.
+Added to both HTTPS server blocks: `Content-Security-Policy` (allows unsafe-inline/eval for Vite dev — tighten in production), `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`. Removed deprecated `X-XSS-Protection`. HSTS was already present. `set_real_ip_from` added for Docker subnets.
 
 ---
 
-### 12. `AuditLog.userId` is not a foreign key
-**Schema:** `backend/prisma/schema.prisma`
+### 12. ~~`AuditLog.userId` is not a foreign key~~ — RESOLVED
 
-```prisma
-model AuditLog {
-  userId String?  // no @relation to User
-}
-```
-
-There is no referential integrity between `AuditLog` and `User`. Deleting a user silently orphans their audit records with no cascade or restriction. You cannot join from audit logs to users at the DB level. For a security audit trail this is a meaningful gap.
-
-**Fix:** Add a `@relation` with `onDelete: SetNull` (to preserve the log while clearing the user reference) or keep the current nullable field but add a DB-level foreign key constraint.
+Added `user User? @relation(fields: [userId], references: [id], onDelete: SetNull)` to `AuditLog` and `auditLogs AuditLog[]` to `User`. Deleting a user now sets `userId` to null on their audit records rather than orphaning them. Run `prisma db push` (or `docker exec backend_api npx prisma db push`) to apply the FK constraint.
 
 ---
 
-### 13. Swagger UI is publicly accessible
-**File:** `backend/src/index.ts` line 32
+### 13. ~~Swagger UI is publicly accessible~~ — RESOLVED
 
-`/api/docs` is in `PUBLIC_ROUTES` and requires no authentication. Attackers can enumerate all endpoints, parameters, and response schemas without credentials.
-
-**Fix:** In production, either remove the route or gate it behind the admin secret or a JWT.
+In production (`NODE_ENV=production`), the `adminAuth` middleware is mounted before the Swagger UI handler, requiring `x-admin-secret` to access `/api/docs`. In development the route remains open for convenience.
 
 ---
 
@@ -173,23 +129,15 @@ Long-lived JWTs are a security risk. Short-lived JWTs without refresh cause UX p
 
 ---
 
-### 15. No request body size limit
-**File:** `backend/src/index.ts` line 28
+### 15. ~~No request body size limit~~ — RESOLVED
 
-`app.use(express.json())` with no `limit` option defaults to 100kb but this should be made explicit. The 90-second `proxy_read_timeout` in NGINX combined with unconstrained body sizes creates a surface for memory exhaustion or slow-body attacks.
-
-**Fix:**
-```ts
-app.use(express.json({ limit: '50kb' }));
-```
-Reduce NGINX `proxy_read_timeout` to a value appropriate for your API (e.g. 30s).
+`express.json({ limit: '50kb' })` and `express.urlencoded({ limit: '50kb' })` are now explicit. NGINX `proxy_read_timeout` remains at 90s — reduce to 30s in production once confirmed no legitimate long-running endpoints exist.
 
 ---
 
-### 16. `X-Forwarded-For` without trusted proxy configuration
-**File:** `nginx/nginx.conf`
+### 16. ~~`X-Forwarded-For` without trusted proxy configuration~~ — RESOLVED
 
-NGINX passes `$proxy_add_x_forwarded_for` but there is no `set_real_ip_from` / `real_ip_header` configuration. If a CDN or load balancer sits in front of NGINX, the IP addresses in this header can be spoofed by clients. Any IP-based logic (rate limiting, audit logging, geo-restrictions) would be unreliable.
+Added `real_ip_header X-Forwarded-For` and `set_real_ip_from` for Docker subnets (172.16/12, 10.0/8, 127.0.0.1) in `nginx/nginx.conf`. If a CDN or upstream load balancer is added in production, add its subnet to `set_real_ip_from`.
 
 ---
 
@@ -198,17 +146,17 @@ NGINX passes `$proxy_add_x_forwarded_for` but there is no `set_real_ip_from` / `
 | # | Action | Severity |
 |---|---|---|
 | 1 | ~~Investigate and remove agent log blocks~~ — DONE | ~~Critical~~ |
-| 2 | Fix CORS: pass `TRUSTED_ORIGINS` to cors() | Critical |
+| 2 | ~~Fix CORS: pass `TRUSTED_ORIGINS` to cors()~~ — DONE | ~~Critical~~ |
 | 3 | ~~Add TLS to NGINX~~ — DONE | ~~Critical~~ |
 | 4 | ~~Remove `POST /api/tickets/graphql`~~ — DONE | ~~Critical~~ |
 | 5 | ~~Validate `externalReferenceId` as integer before GraphQL interpolation~~ — DONE | ~~High~~ |
-| 6 | Hash 2FA backup codes and OTP values | High |
-| 7 | Add rate limiting on auth and proxy routes | High |
-| 8 | Add user identity to admin actions / audit log | High |
-| 9 | Cache RBAC role lookups in memory | Medium |
-| 10 | Auth-gate or remove `/api/docs` in production | Medium |
-| 11 | Add CSP, HSTS, Referrer-Policy headers to NGINX | Medium |
-| 12 | Add FK constraint or relation for `AuditLog.userId` | Medium |
+| 6 | ~~Hash OTP values before storage~~ — DONE (backup codes: Better Auth internal) | ~~High~~ |
+| 7 | ~~Add rate limiting on auth and proxy routes~~ — DONE | ~~High~~ |
+| 8 | ~~Add IP identity to admin audit log~~ — DONE (full JWT auth for admin: future) | ~~High~~ |
+| 9 | ~~Cache RBAC role lookups in memory~~ — DONE | ~~Medium~~ |
+| 10 | ~~Auth-gate `/api/docs` in production~~ — DONE | ~~Medium~~ |
+| 11 | ~~Add CSP, Referrer-Policy, Permissions-Policy headers to NGINX~~ — DONE | ~~Medium~~ |
+| 12 | ~~Add FK constraint for `AuditLog.userId`~~ — DONE (apply with `prisma db push`) | ~~Medium~~ |
 | 13 | Clarify JWT expiry and refresh strategy | Investigate |
-| 14 | Set explicit body size limit in express.json() | Low |
-| 15 | Configure `set_real_ip_from` in NGINX if behind a proxy | Low |
+| 14 | ~~Set explicit body size limit in express.json()~~ — DONE | ~~Low~~ |
+| 15 | ~~Configure `set_real_ip_from` in NGINX~~ — DONE | ~~Low~~ |

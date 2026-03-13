@@ -117,14 +117,15 @@ router.patch('/settings/:key', async (req: Request, res: Response) => {
     // Create audit log
     await createAuditLog(
       `UPDATE_SETTING: ${key}`,
-      null, // userId can be added when auth is fully implemented
+      null,
       {
         settingKey: key,
         changes: updateData,
         previousValue: {
           isEnabled: existingSetting.isEnabled,
-          providerConfig: existingSetting.providerConfig
-        }
+          providerConfig: existingSetting.providerConfig,
+        },
+        adminIp: req.ip,
       }
     );
     
@@ -545,7 +546,7 @@ router.post('/organizations', async (req: Request, res: Response) => {
       },
     });
 
-    await createAuditLog('ORG_CREATED', null, { orgId: org.id, name: org.name, slug: org.slug }, org.id);
+    await createAuditLog('ORG_CREATED', null, { orgId: org.id, name: org.name, slug: org.slug, adminIp: req.ip }, org.id);
 
     res.status(201).json(org);
   } catch (error) {
@@ -607,7 +608,7 @@ router.patch('/organizations/:orgId', checkOrganizationAccess(), async (req: Req
       data: updateData,
     });
 
-    await createAuditLog('ORG_UPDATED', null, { orgId, changes: updateData }, orgId);
+    await createAuditLog('ORG_UPDATED', null, { orgId, changes: updateData, adminIp: req.ip }, orgId);
 
     res.json(org);
   } catch (error) {
@@ -694,7 +695,7 @@ router.post(
       await createAuditLog(
         'MEMBER_INVITED',
         null,
-        { orgId, userEmail: email, role },
+        { orgId, userEmail: email, role, adminIp: req.ip },
         orgId
       );
 
@@ -777,7 +778,7 @@ router.patch(
       await createAuditLog(
         'MEMBER_ROLE_CHANGED',
         null,
-        { orgId, userId, previousRole: existing.role, newRole: role },
+        { orgId, userId, previousRole: existing.role, newRole: role, adminIp: req.ip },
         orgId
       );
 
@@ -840,7 +841,7 @@ router.delete(
       await createAuditLog(
         'MEMBER_REMOVED',
         null,
-        { orgId, userId, userEmail: existing.user.email, previousRole: existing.role },
+        { orgId, userId, userEmail: existing.user.email, previousRole: existing.role, adminIp: req.ip },
         orgId
       );
 

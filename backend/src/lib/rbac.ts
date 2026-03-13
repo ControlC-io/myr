@@ -1,7 +1,31 @@
 import prisma from './prisma';
+import type { RoleEndpointMapping } from '@prisma/client';
 
 /** Counter write paths: increment and decrement share the same permission. */
 const COUNTER_WRITE_PATHS = ['/api/counter/increment', '/api/counter/decrement'];
+
+// ─── RBAC cache ───────────────────────────────────────────────────────────────
+// Caches the full RoleEndpointMapping table. Updated at most once per TTL window.
+// Call invalidateRbacCache() from admin routes after any endpoint mapping mutation.
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+let cachedMappings: RoleEndpointMapping[] | null = null;
+let cacheTimestamp = 0;
+
+export function invalidateRbacCache(): void {
+  cachedMappings = null;
+  cacheTimestamp = 0;
+}
+
+async function getSystemMappings(): Promise<RoleEndpointMapping[]> {
+  const now = Date.now();
+  if (cachedMappings !== null && now - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedMappings;
+  }
+  cachedMappings = await prisma.roleEndpointMapping.findMany({});
+  cacheTimestamp = now;
+  return cachedMappings;
+}
 
 /**
  * Returns true if the given endpoint and method cover the request (path + method).
@@ -41,7 +65,7 @@ export async function hasRoleAccess(
   const covers = (endpoint: string, method: string) =>
     mappingCoversRequest(endpoint, method, requestMethod, requestPath);
 
-  const systemWideMappings = await prisma.roleEndpointMapping.findMany({});
+  const systemWideMappings = await getSystemMappings();
   const anyMappingExists = systemWideMappings.some((m) => covers(m.endpoint, m.method));
 
   if (!anyMappingExists) {

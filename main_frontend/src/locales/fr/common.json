@@ -1,4 +1,19 @@
 {
+  "pagination": {
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page": "Page {{page}}",
+    "pageOf": "Page {{page}} sur {{totalPages}}",
+    "showing": "Affichage de {{from}} à {{to}} sur {{total}}",
+    "perPage": "par page"
+  },
+  "filters": {
+    "search": "Rechercher...",
+    "status": "Statut",
+    "all": "Tous",
+    "dateFrom": "Du",
+    "dateTo": "Au"
+  },
   "nav": {
     "home": "Accueil",
     "dashboard": "Tableau de bord",
@@ -195,6 +210,16 @@
       "opened": "Ouvert le",
       "status": "Statut",
       "solved": "Résolu le"
+    }
+  },
+  "orders": {
+    "columns": {
+      "reference": "Référence",
+      "description": "Description",
+      "date": "Date de commande",
+      "deliveryDate": "Date de livraison",
+      "amount": "Montant",
+      "status": "Statut"
     }
   },
   "dashboard": {

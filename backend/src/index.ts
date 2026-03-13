@@ -5,6 +5,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import prisma from './lib/prisma';
 import { loadAuthConfig } from './lib/auth';
@@ -22,12 +23,43 @@ import orgResourcesRouter from './routes/organizationResources';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Core Middleware ───────────────────────────────────────────────────────────
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ─── Trust proxy (NGINX sits in front) ────────────────────────────────────────
+app.set('trust proxy', 1);
 
-// ─── Swagger UI (public) ───────────────────────────────────────────────────────
+// ─── Core Middleware ───────────────────────────────────────────────────────────
+const corsAllowedOrigins = process.env.TRUSTED_ORIGINS
+  ?.split(',')
+  .map((o) => o.trim())
+  .filter(Boolean) ?? [];
+
+app.use(cors({
+  origin: corsAllowedOrigins.length > 0 ? corsAllowedOrigins : false,
+  credentials: true,
+}));
+app.use(express.json({ limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+
+// ─── Rate limiters ─────────────────────────────────────────────────────────────
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
+
+const adminRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many admin requests, please try again later' },
+});
+
+// ─── Swagger UI (gated in production) ─────────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api/docs', adminAuth);
+}
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /**
@@ -97,6 +129,11 @@ app.get('/api/health', async (_req, res) => {
 });
 
 // ─── Public Auth Routes ────────────────────────────────────────────────────────
+// Rate-limit credential endpoints before they hit handlers
+app.use('/api/auth/sign-in', authRateLimit);
+app.use('/api/auth/sign-up', authRateLimit);
+app.use('/api/auth/token', authRateLimit);
+
 // /api/auth/token must be mounted BEFORE jwtAuth so it is not gated
 app.use('/api/auth', authRouter);
 
@@ -117,6 +154,7 @@ app.use('/api/accounting', accountingRouter);
 app.use('/api/orgs', orgResourcesRouter);
 
 // ─── Admin API Routes (x-admin-secret auth; jwtAuth skips /api/admin via PUBLIC_ROUTES) ─
+app.use('/api/admin', adminRateLimit);
 app.use('/api/admin', adminAuth);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin', rolesRouter);

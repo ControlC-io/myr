@@ -36,7 +36,8 @@ model User {
   twoFactor         TwoFactor?
   userRoles         UserRole[]
   members           Member[]
-  
+  auditLogs         AuditLog[]
+
   @@map("users")
 }
 
@@ -194,6 +195,7 @@ model AuditLog {
   timestamp      DateTime @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }

@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@shared/auth";
 import { getJson } from "../api/client";
 import { useTickets } from "../features/tickets/hooks";
 import type { Ticket } from "../features/tickets/types";
+import Pagination from "../components/Pagination";
+import TableFilters from "../components/TableFilters";
 
 const PAGE_SIZE = 10;
 
@@ -24,6 +26,11 @@ const TicketsPage = () => {
   const [page, setPage] = useState(1);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgError, setOrgError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     async function fetchOrg() {
@@ -76,6 +83,43 @@ const TicketsPage = () => {
 
   const tickets: Ticket[] = data?.data ?? [];
 
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      const matchesSearch =
+        search === "" ||
+        (ticket.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        String(ticket.id).includes(search);
+      
+      const matchesStatus =
+        status === "" ||
+        (ticket.status || "").toLowerCase() === status.toLowerCase();
+      
+      const ticketDate = ticket.date ? new Date(ticket.date) : null;
+      let matchesDateFrom = true;
+      if (dateFrom && ticketDate) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        matchesDateFrom = ticketDate >= fromDate;
+      }
+      
+      let matchesDateTo = true;
+      if (dateTo && ticketDate) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        matchesDateTo = ticketDate <= toDate;
+      }
+
+      return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
+    });
+  }, [tickets, search, status, dateFrom, dateTo]);
+
+  const statusOptions = [
+    { label: "Open", value: "open" },
+    { label: "In Progress", value: "in_progress" },
+    { label: "Resolved", value: "resolved" },
+    { label: "Closed", value: "closed" },
+  ];
+
   if (authLoading || jwtLoading || (orgId === null && !orgError)) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -117,6 +161,21 @@ const TicketsPage = () => {
           </div>
         </header>
 
+        {/* Filters */}
+        {!orgError && (
+          <TableFilters
+            search={search}
+            onSearchChange={setSearch}
+            status={status}
+            onStatusChange={setStatus}
+            statusOptions={statusOptions}
+            dateFrom={dateFrom}
+            onDateFromChange={setDateFrom}
+            dateTo={dateTo}
+            onDateToChange={setDateTo}
+          />
+        )}
+
         {/* Tickets table section */}
         <section className="space-y-4">
           <div className="flex items-center gap-3">
@@ -128,9 +187,9 @@ const TicketsPage = () => {
             <h2 className="text-lg font-bold text-textPrimary dark:text-textPrimary-dark">
               {t("pages.tickets.title")}
             </h2>
-            {!isLoading && tickets.length > 0 && (
+            {!isLoading && filteredTickets.length > 0 && (
               <span className="h-5 w-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center">
-                {tickets.length}
+                {filteredTickets.length}
               </span>
             )}
           </div>
@@ -160,13 +219,13 @@ const TicketsPage = () => {
               </div>
             )}
 
-            {!isLoading && !isError && tickets.length === 0 && (
+            {!isLoading && !isError && filteredTickets.length === 0 && (
               <div className="py-16 text-center text-textSecondary dark:text-textSecondary-dark text-sm">
-                {t("pages.tickets.empty", "You do not have any tickets yet")}
+                {t("pages.tickets.empty", "No tickets match your criteria")}
               </div>
             )}
 
-            {!isLoading && !isError && tickets.length > 0 && (
+            {!isLoading && !isError && filteredTickets.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead className="table-header">
@@ -189,7 +248,7 @@ const TicketsPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/5">
-                    {tickets.map((ticket: Ticket) => (
+                    {filteredTickets.map((ticket: Ticket) => (
                       <tr
                         key={ticket.id}
                         className="hover:bg-backgroundSecondary/50 dark:hover:bg-backgroundSecondary-dark/50 transition-colors group"
@@ -205,7 +264,14 @@ const TicketsPage = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-textSecondary dark:text-textSecondary-dark whitespace-nowrap">
-                          {ticket.date ? new Date(ticket.date).toLocaleDateString() : "—"}
+                          {ticket.date ? (() => {
+                            const d = new Date(ticket.date);
+                            if (Number.isNaN(d.getTime())) return ticket.date;
+                            const day = String(d.getDate()).padStart(2, "0");
+                            const month = String(d.getMonth() + 1).padStart(2, "0");
+                            const year = d.getFullYear();
+                            return `${day}/${month}/${year}`;
+                          })() : "—"}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-tight ${statusColors[ticket.status ?? ""] ?? "bg-primary/10 text-textSecondary border border-primary/20"}`}>
@@ -213,7 +279,14 @@ const TicketsPage = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-textSecondary dark:text-textSecondary-dark whitespace-nowrap">
-                          {ticket.solvedate ? new Date(ticket.solvedate).toLocaleDateString() : "—"}
+                          {ticket.solvedate ? (() => {
+                            const d = new Date(ticket.solvedate);
+                            if (Number.isNaN(d.getTime())) return ticket.solvedate;
+                            const day = String(d.getDate()).padStart(2, "0");
+                            const month = String(d.getMonth() + 1).padStart(2, "0");
+                            const year = d.getFullYear();
+                            return `${day}/${month}/${year}`;
+                          })() : "—"}
                         </td>
                       </tr>
                     ))}
@@ -226,27 +299,13 @@ const TicketsPage = () => {
 
         {/* Pagination */}
         {!isError && !orgError && (
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              className="px-3 py-1.5 text-xs font-semibold rounded border border-border dark:border-border-dark text-textSecondary dark:text-textSecondary-dark hover:text-textPrimary dark:hover:text-textPrimary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              onClick={() => setPage((c) => Math.max(1, c - 1))}
-              disabled={page === 1 || isLoading}
-            >
-              {t("pagination.previous", "Previous")}
-            </button>
-            <span className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
-              {t("pagination.page", { page })}
-            </span>
-            <button
-              type="button"
-              className="px-3 py-1.5 text-xs font-semibold rounded border border-border dark:border-border-dark text-textSecondary dark:text-textSecondary-dark hover:text-textPrimary dark:hover:text-textPrimary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              onClick={() => setPage((c) => c + 1)}
-              disabled={isLoading || tickets.length < PAGE_SIZE}
-            >
-              {t("pagination.next", "Next")}
-            </button>
-          </div>
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            hasNextPage={tickets.length === PAGE_SIZE}
+            isLoading={isLoading}
+          />
         )}
 
       </div>

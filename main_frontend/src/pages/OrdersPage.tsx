@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@shared/auth";
 import { getJson } from "../api/client";
-import { useDecompte, type DocItem } from "../features/billing/useDecompte";
+import { useOrders, type OrderItem } from "../features/orders/useOrders";
 import Pagination from "../components/Pagination";
 import TableFilters from "../components/TableFilters";
 
@@ -34,7 +34,7 @@ function formatAmount(value: string | null | undefined): string {
   }).format(parsed);
 }
 
-const InvoicesPage = () => {
+const OrdersPage = () => {
   const { jwtToken, loading: authLoading, jwtLoading } = useAuth();
   const { t } = useTranslation("common");
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -67,7 +67,7 @@ const InvoicesPage = () => {
         }
 
         setOrgId(organizations[0].id);
-      } catch (err: any) {
+      } catch (err: unknown) {
         const status =
           typeof err === "object" && err && "statusCode" in err
             ? (err as { statusCode?: number }).statusCode
@@ -80,7 +80,9 @@ const InvoicesPage = () => {
         } else if (status === 502) {
           setOrgError("Unable to reach the external data service. Please contact your administrator.");
         } else {
-          setOrgError(err.message || "An error occurred while fetching your organization.");
+          setOrgError(
+            err instanceof Error ? err.message : "An error occurred while fetching your organization.",
+          );
         }
       }
     }
@@ -88,23 +90,22 @@ const InvoicesPage = () => {
     fetchOrg();
   }, [jwtToken, authLoading, jwtLoading]);
 
-  const { data, isLoading, isError, error, refetch } = useDecompte(orgId);
+  const { data, isLoading, isError, error, refetch } = useOrders(orgId);
 
-  const rows: DocItem[] = Array.isArray(data) ? data : [];
+  const rows: OrderItem[] = Array.isArray(data) ? data : [];
 
   const filteredRows = useMemo(() => {
     return rows.filter((item) => {
       const matchesSearch =
         search === "" ||
-        (item.number || "").toLowerCase().includes(search.toLowerCase()) ||
+        (item.reference || "").toLowerCase().includes(search.toLowerCase()) ||
         (item.description || "").toLowerCase().includes(search.toLowerCase());
       
       const matchesStatus =
         status === "" ||
-        (status === "open" && item.is_open) ||
-        (status === "closed" && !item.is_open);
+        (item.status || "").toLowerCase() === status.toLowerCase();
       
-      const itemDate = item.sentDate ? new Date(item.sentDate) : null;
+      const itemDate = item.date ? new Date(item.date) : null;
       let matchesDateFrom = true;
       if (dateFrom && itemDate) {
         const fromDate = new Date(dateFrom);
@@ -133,18 +134,14 @@ const InvoicesPage = () => {
     setPage(1);
   }, [search, status, dateFrom, dateTo]);
 
-  const totalAmount = useMemo(() => {
-    return filteredRows.reduce((sum, item) => {
-      const parsed = Number(String(item.amount).replace(",", "."));
-      if (Number.isNaN(parsed)) return sum;
-      return sum + parsed;
-    }, 0);
-  }, [filteredRows]);
-
-  const statusOptions = [
-    { label: t("billing.status.open", "Open"), value: "open" },
-    { label: t("billing.status.closed", "Closed"), value: "closed" },
-  ];
+  // Extract unique statuses for the dropdown
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    rows.forEach((item) => {
+      if (item.status) statuses.add(item.status);
+    });
+    return Array.from(statuses).map((s) => ({ label: s, value: s }));
+  }, [rows]);
 
   if (authLoading || jwtLoading || (orgId === null && !orgError)) {
     return (
@@ -160,27 +157,19 @@ const InvoicesPage = () => {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-textPrimary dark:text-textPrimary-dark">
-              {t("pages.billing.title")}
+              {t("pages.orders.title")}
             </h1>
             <p className="mt-1 text-sm text-textSecondary dark:text-textSecondary-dark">
-              {t("pages.billing.subtitle", "Overview of your open invoices and account balance")}
+              {t("pages.orders.subtitle", "Overview of your orders")}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <button
-              type="button"
-              className="btn-primary inline-flex items-center px-3 py-2 text-sm font-medium"
-              onClick={() => refetch()}
-            >
-              {t("actions.refresh", "Refresh")}
-            </button>
-            <div className="text-xs text-textSecondary dark:text-textSecondary-dark">
-              {t("billing.summary.totalOutstanding", "Total outstanding")}:{" "}
-              <span className="font-semibold text-textPrimary dark:text-textPrimary-dark">
-                {formatAmount(totalAmount.toFixed(2))}
-              </span>
-            </div>
-          </div>
+          <button
+            type="button"
+            className="btn-primary inline-flex items-center px-3 py-2 text-sm font-medium"
+            onClick={() => refetch()}
+          >
+            {t("actions.refresh", "Refresh")}
+          </button>
         </div>
 
         {orgError && (
@@ -211,7 +200,7 @@ const InvoicesPage = () => {
 
         {!orgError && isError && (
           <div className="alert-error space-y-2">
-            <p>{t("errors.billingLoad", "There was a problem loading your invoices")}</p>
+            <p>{t("errors.generic", "There was a problem loading data")}</p>
             <p className="text-xs opacity-80 text-sec">
               {error instanceof Error ? error.message : String(error)}
             </p>
@@ -227,7 +216,7 @@ const InvoicesPage = () => {
 
         {!orgError && !isLoading && !isError && filteredRows.length === 0 && (
           <div className="py-10 text-center text-sec text-sm">
-            {t("pages.billing.empty", "You do not have any invoices matching your criteria")}
+            {t("pages.orders.empty", "You do not have any orders matching your criteria")}
           </div>
         )}
 
@@ -239,38 +228,39 @@ const InvoicesPage = () => {
                   <thead className="table-header">
                     <tr>
                       <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
-                        {t("billing.columns.issueDate", "Issue Date")}
+                        {t("orders.columns.reference", "Reference")}
                       </th>
                       <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
-                        {t("billing.columns.invoice", "Invoice Number")}
+                        {t("orders.columns.description", "Description")}
                       </th>
                       <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
-                        {t("billing.columns.dueDate", "Due Date")}
+                        {t("orders.columns.date", "Order Date")}
                       </th>
                       <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
-                        {t("billing.columns.amount", "Initial Amount")}
+                        {t("orders.columns.deliveryDate", "Delivery Date")}
                       </th>
                       <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
-                        {t("billing.columns.status", "Status")}
+                        {t("orders.columns.amount", "Amount")}
+                      </th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
+                        {t("orders.columns.status", "Status")}
                       </th>
                     </tr>
                   </thead>
                   <tbody className="table-body bg-surface dark:bg-surface-dark">
                     {pagedRows.map((item) => (
                       <tr key={item.id} className="table-row">
-                        <td className="table-cell-secondary">{formatDate(item.sentDate)}</td>
-                        <td className="table-cell">{item.number}</td>
-                        <td className="table-cell-secondary">{formatDate(item.due_date)}</td>
+                        <td className="table-cell">{item.reference ?? "—"}</td>
+                        <td className="table-cell-secondary">{item.description ?? "—"}</td>
+                        <td className="table-cell-secondary">{formatDate(item.date)}</td>
+                        <td className="table-cell-secondary">{formatDate(item.delivery_date)}</td>
                         <td className="table-cell-secondary">{formatAmount(item.amount)}</td>
                         <td className="table-cell-secondary">
-                          <span className={item.is_open
-                            ? "badge badge-warning text-[11px]"
-                            : "badge text-[11px]"
-                          }>
-                            {item.is_open
-                              ? t("billing.status.open", "Open")
-                              : t("billing.status.closed", "Closed")}
-                          </span>
+                          {item.status ? (
+                            <span className="badge text-[11px]">{item.status}</span>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -293,4 +283,4 @@ const InvoicesPage = () => {
   );
 };
 
-export default InvoicesPage;
+export default OrdersPage;

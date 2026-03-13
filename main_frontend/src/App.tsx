@@ -15,6 +15,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import TicketsPage from "./pages/TicketsPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InformationClient from "./pages/InformationClient";
+import OrdersPage from "./pages/OrdersPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 
 const AppRoutes = () => {
@@ -86,10 +87,7 @@ const AppRoutes = () => {
             path="/offres"
             element={<PlaceholderPage titleKey="pages.offers.title" />}
           />
-          <Route
-            path="/commandes"
-            element={<PlaceholderPage titleKey="pages.orders.title" />}
-          />
+          <Route path="/commandes" element={<OrdersPage />} />
           <Route
             path="/contrats"
             element={<PlaceholderPage titleKey="pages.contracts.title" />}
