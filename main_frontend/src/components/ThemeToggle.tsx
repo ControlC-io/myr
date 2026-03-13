@@ -15,19 +15,19 @@ const ThemeToggle: FC<ThemeToggleProps> = ({ className = "" }) => {
       onClick={toggleTheme}
       role="switch"
       aria-checked={isDark}
-      className={`group relative inline-flex h-7 w-14 items-center rounded-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-inner transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${className}`}
+      className={`group relative inline-flex h-6 w-12 items-center rounded-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-inner transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${className}`}
       aria-label="Toggle dark mode"
     >
       <span className="sr-only">Turn dark mode on or off</span>
       <span
-        className={`inline-flex h-5 w-5 transform items-center justify-center rounded-full bg-background dark:bg-background-dark shadow-md ring-1 ring-border dark:ring-border-dark transition-transform duration-200 ${
+        className={`inline-flex h-4 w-4 transform items-center justify-center rounded-full bg-background dark:bg-background-dark shadow-md ring-1 ring-border dark:ring-border-dark transition-transform duration-200 ${
           isDark ? "translate-x-7" : "translate-x-1"
         }`}
         aria-hidden="true"
       >
         {isDark ? (
           <svg
-            className="h-3 w-3 text-textSecondary dark:text-textSecondary-dark"
+            className="h-2.5 w-2.5 text-textSecondary dark:text-textSecondary-dark"
             viewBox="0 0 24 24"
             fill="currentColor"
           >
@@ -35,7 +35,7 @@ const ThemeToggle: FC<ThemeToggleProps> = ({ className = "" }) => {
           </svg>
         ) : (
           <svg
-            className="h-3 w-3 text-secondary-on-light dark:text-secondary-on-dark"
+            className="h-2.5 w-2.5 text-secondary-on-light dark:text-secondary-on-dark"
             viewBox="0 0 24 24"
             fill="currentColor"
           >

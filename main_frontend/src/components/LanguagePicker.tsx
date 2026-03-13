@@ -60,7 +60,7 @@ const LanguagePicker: FC<LanguagePickerProps> = ({ className = "", onChange }) =
             key={lang}
             type="button"
             onClick={() => handleSelect(lang)}
-            className={`relative flex items-center justify-center h-7 w-10 rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-1 ${
+            className={`relative flex items-center justify-center h-6 w-9 rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-1 ${
               isActive
                 ? "bg-secondary shadow-sm opacity-100"
                 : "bg-transparent opacity-30 hover:opacity-60"
@@ -71,7 +71,7 @@ const LanguagePicker: FC<LanguagePickerProps> = ({ className = "", onChange }) =
             <img
               src={lang === "fr" ? frFlag : ukFlag}
               alt={lang === "fr" ? "French" : "English"}
-              className="h-4 w-auto rounded-sm"
+              className="h-3 w-auto rounded-sm"
             />
           </button>
         );

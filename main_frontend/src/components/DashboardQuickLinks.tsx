@@ -168,22 +168,23 @@ interface CardProps {
   link: DashboardLink;
   label: string;
   onClick: () => void;
+  glassy?: boolean;
 }
 
-const DashboardCard = ({ link, label, onClick }: CardProps) => {
+const DashboardCard = ({ link, label, onClick, glassy = false }: CardProps) => {
   const Icon = iconMap[link.id] ?? DocumentIcon;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="relative group flex flex-col items-center justify-center gap-2 p-3 card--square-tl
-        bg-white dark:bg-surface-dark
-        border border-border dark:border-white/10
-        hover:border-secondary/50 dark:hover:border-white/25
-        hover:shadow-md dark:hover:shadow-black/30
+      className={`relative group flex flex-col items-center justify-center gap-2 p-3 card--square-tl
         transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-secondary/60
-        w-full"
+        w-full ${
+        glassy
+          ? 'bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 hover:border-white/35 hover:shadow-lg hover:shadow-black/20'
+          : 'bg-white dark:bg-surface-dark border border-border dark:border-white/10 hover:border-secondary/50 dark:hover:border-white/25 hover:shadow-md dark:hover:shadow-black/30'
+      }`}
     >
       {/* Badge */}
       {link.badge && (
@@ -197,19 +198,20 @@ const DashboardCard = ({ link, label, onClick }: CardProps) => {
       )}
 
       {/* Icon container */}
-      <div className="w-9 h-9 rounded-lg flex items-center justify-center
-        bg-background dark:bg-black/25
-        text-icon-purple dark:text-white/75
-        group-hover:text-secondary dark:group-hover:text-white
-        transition-colors">
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+        glassy
+          ? 'bg-white/15 text-white/80 group-hover:text-white group-hover:bg-white/25'
+          : 'bg-background dark:bg-black/25 text-icon-purple dark:text-white/75 group-hover:text-secondary dark:group-hover:text-white'
+      }`}>
         <Icon />
       </div>
 
       {/* Label */}
-      <span className="text-xs sm:text-sm font-medium text-center leading-snug
-        text-textPrimary dark:text-white/90
-        group-hover:text-secondary dark:group-hover:text-white
-        transition-colors">
+      <span className={`text-xs sm:text-sm font-medium text-center leading-snug transition-colors ${
+        glassy
+          ? 'text-white/80 group-hover:text-white'
+          : 'text-textPrimary dark:text-white/90 group-hover:text-secondary dark:group-hover:text-white'
+      }`}>
         {label}
       </span>
     </button>
@@ -218,7 +220,11 @@ const DashboardCard = ({ link, label, onClick }: CardProps) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export const DashboardQuickLinks = () => {
+interface DashboardQuickLinksProps {
+  glassy?: boolean;
+}
+
+export const DashboardQuickLinks = ({ glassy = false }: DashboardQuickLinksProps) => {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
 
@@ -236,10 +242,12 @@ export const DashboardQuickLinks = () => {
         <div key={section.labelKey}>
           {/* Section header */}
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-textSecondary dark:text-white/50 shrink-0">
+            <span className={`text-[11px] font-bold tracking-[0.18em] uppercase shrink-0 ${
+              glassy ? 'text-white/50' : 'text-textSecondary dark:text-white/50'
+            }`}>
               {t(section.labelKey)}
             </span>
-            <div className="flex-1 h-px bg-border dark:bg-white/10" />
+            <div className={`flex-1 h-px ${glassy ? 'bg-white/15' : 'bg-border dark:bg-white/10'}`} />
           </div>
 
           {/* Cards grid */}
@@ -250,6 +258,7 @@ export const DashboardQuickLinks = () => {
                 link={link}
                 label={t(`dashboard.home.links.${link.id}`)}
                 onClick={() => handleClick(link)}
+                glassy={glassy}
               />
             ))}
           </div>
