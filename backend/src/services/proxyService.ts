@@ -28,6 +28,40 @@ export async function proxyRestPost(path: string, queryParams?: Record<string, s
   return JSON.parse(text);
 }
 
+export async function proxyRestPostJson(path: string, body: unknown): Promise<unknown> {
+  const apiUrl = process.env.DECOMPTE_API_BASE;
+  const apiKey = process.env.DECOMPTE_API_KEY;
+  const apiToken = process.env.DECOMPTE_API_BEARER;
+
+  if (!apiUrl || !apiKey || !apiToken) {
+    throw new Error('Decompte API credentials not configured.');
+  }
+
+  const restBase = new URL(apiUrl).origin;
+  const url = `${restBase}${path}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    const error: any = new Error('Proxy REST JSON request failed');
+    error.response = {
+      status: response.status,
+      data: text.startsWith('{') || text.startsWith('[') ? JSON.parse(text) : { message: text },
+    };
+    throw error;
+  }
+  return JSON.parse(text);
+}
+
 export async function proxyRestGet(path: string): Promise<unknown> {
   const apiUrl = process.env.DECOMPTE_API_BASE;
   const apiKey = process.env.DECOMPTE_API_KEY;

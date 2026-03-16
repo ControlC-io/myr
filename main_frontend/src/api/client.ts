@@ -109,3 +109,11 @@ export function postJson<TBody, TResponse>(
   return request<TResponse>({ path, method: "POST", body, headers });
 }
 
+export function putJson<TBody, TResponse>(
+  path: string,
+  body: TBody,
+  headers?: HeadersInit,
+): Promise<TResponse> {
+  return request<TResponse>({ path, method: "PUT", body, headers });
+}
+

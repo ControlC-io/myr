@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { authClient } from './authClient';
 import type { User, TwoFactorSetupData, AuthContextType } from './types';
@@ -34,11 +34,35 @@ export const useAuth = (): AuthContextType => {
 const JWT_STORAGE_KEY = 'myrtest_jwt_token';
 const PENDING_OTP_KEY = 'pending_email_otp_user_id';
 
+function isJwtExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.exp === 'number' && payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
+/** Returns ms until the token expires, or 0 if already expired / unparseable. */
+function msUntilJwtExpiry(token: string): number {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (typeof payload.exp !== 'number') return 0;
+    return Math.max(0, payload.exp * 1000 - Date.now());
+  } catch {
+    return 0;
+  }
+}
+
+// Refresh the JWT 2 minutes before it expires to avoid mid-request failures.
+const JWT_REFRESH_BUFFER_MS = 2 * 60 * 1000;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [jwtLoading, setJwtLoading] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchJwtFromSession = async (): Promise<boolean> => {
     setJwtLoading(true);
@@ -75,17 +99,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await safeJson<{ user?: unknown }>(res);
       if (res.ok) {
         if (data?.user) {
+          const stored = localStorage.getItem(JWT_STORAGE_KEY);
+          const storedIsValid = stored !== null && !isJwtExpired(stored);
           const applyUser = () => {
             setUser(data.user as User);
-            const stored = localStorage.getItem(JWT_STORAGE_KEY);
-            if (stored) setJwtToken(stored);
+            if (storedIsValid) setJwtToken(stored);
           };
           if (commitSync) {
             flushSync(applyUser);
           } else {
             applyUser();
           }
-          if (!localStorage.getItem(JWT_STORAGE_KEY)) {
+          if (!storedIsValid) {
+            if (stored) localStorage.removeItem(JWT_STORAGE_KEY);
             await fetchJwtFromSession();
           }
         } else {
@@ -108,6 +134,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkSession();
   }, []);
+
+  // Schedule a silent JWT refresh before the token expires.
+  useEffect(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    if (!jwtToken || !user) return;
+
+    const delay = msUntilJwtExpiry(jwtToken) - JWT_REFRESH_BUFFER_MS;
+    if (delay <= 0) {
+      // Already within the buffer window — refresh immediately.
+      fetchJwtFromSession();
+      return;
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      fetchJwtFromSession();
+    }, delay);
+
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [jwtToken, user]);
 
   const fetchJwtToken = async (email: string, password: string): Promise<boolean> => {
     setJwtLoading(true);

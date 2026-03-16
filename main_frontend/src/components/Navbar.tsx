@@ -183,13 +183,11 @@ const Navbar = () => {
               <div ref={profileRef} className="relative flex items-center gap-3">
                 <button
                   onClick={() => setProfileOpen((o) => !o)}
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-secondary/20 text-textPrimary dark:bg-white/10 dark:text-textPrimary-dark hover:bg-secondary/30 dark:hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-transparent"
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-secondary text-white text-sm font-semibold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-transparent"
                   aria-label="Profile menu"
                   aria-expanded={profileOpen}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  {(user.name ?? user.email).charAt(0).toUpperCase()}
                 </button>
                 {profileOpen && (
                   <div className="absolute right-0 top-full mt-1 w-56 bg-surface dark:bg-surface-dark rounded-lg shadow-lg border border-border dark:border-border-dark z-50">

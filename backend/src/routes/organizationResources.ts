@@ -16,7 +16,7 @@ import prisma from '../lib/prisma';
 import { MemberRole } from '@prisma/client';
 import { checkOrganizationAccess } from '../middleware/auth';
 import { createAuditLog } from '../middleware/auditLog';
-import { proxyGraphQL, proxyRestGet, proxyRestPost } from '../services/proxyService';
+import { proxyGraphQL, proxyRestGet, proxyRestPost, proxyRestPostJson } from '../services/proxyService';
 import { buildSupplierQuery, buildTicketsQuery } from '../services/decompteQueries';
 
 const router = express.Router();
@@ -451,6 +451,108 @@ router.post(
       const remoteStatus = error.response?.status;
       res.status(remoteStatus ? 502 : 500).json({
         error: 'Proxy request failed',
+        details: error.response?.data || error.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/orgs/:orgId/proxy/supplier/update
+// Proxies multiple REST requests to Rapix to update supplier and/or contacts.
+// Minimum role: MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
+router.put(
+  '/:orgId/proxy/supplier/update',
+  checkOrganizationAccess(MemberRole.MANAGER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId } = req.params;
+      const { requesterContactId, supplierAttributes, contactUpdates } = req.body as {
+        requesterContactId: number;
+        supplierAttributes?: Record<string, string>;
+        contactUpdates?: Array<{
+          contactId: number;
+          attributes: Record<string, string>;
+        }>;
+      };
+
+      if (!requesterContactId) {
+        res.status(400).json({ error: 'requesterContactId is required' });
+        return;
+      }
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) {
+        res.status(404).json({ error: 'Organization not found' });
+        return;
+      }
+      if (!org.externalReferenceId) {
+        res.status(403).json({ error: 'Organization has no linked supplier' });
+        return;
+      }
+
+      const customerId = org.externalReferenceId;
+      const results: any[] = [];
+      let requestCount = 0;
+
+      // 1. Update supplier attributes if any
+      if (supplierAttributes && Object.keys(supplierAttributes).length > 0) {
+        const payload = {
+          app: 'myr',
+          requester_type: 'Tical\\Contact',
+          requester_id: requesterContactId,
+          customer_id: parseInt(customerId, 10),
+          content: {
+            op: 'update',
+            entity_type: 'Tical\\Customer',
+            entity_id: parseInt(customerId, 10),
+            attributes: supplierAttributes,
+          },
+        };
+        const result = await proxyRestPostJson('/api/request/new', payload);
+        results.push({ type: 'supplier', result });
+        requestCount++;
+      }
+
+      // 2. Update contact attributes if any
+      if (contactUpdates && contactUpdates.length > 0) {
+        for (const update of contactUpdates) {
+          if (Object.keys(update.attributes).length > 0) {
+            const payload = {
+              app: 'myr',
+              requester_type: 'Tical\\Contact',
+              requester_id: requesterContactId,
+              customer_id: parseInt(customerId, 10),
+              content: {
+                op: 'update',
+                entity_type: 'Tical\\Customer.contact',
+                entity_id: update.contactId,
+                attributes: update.attributes,
+              },
+            };
+            const result = await proxyRestPostJson('/api/request/new', payload);
+            results.push({ type: 'contact', contactId: update.contactId, result });
+            requestCount++;
+          }
+        }
+      }
+
+      // Log the update action
+      await createAuditLog(
+        'SUPPLIER_UPDATE_REQUESTED',
+        req.user!.userId,
+        { orgId, customerId, requestCount, supplierAttributes, contactUpdatesCount: contactUpdates?.length ?? 0 },
+        orgId
+      );
+
+      res.json({ success: true, requestCount, results });
+    } catch (error: any) {
+      console.error('Supplier update proxy failed:', error);
+      const remoteStatus = error.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
+        error: 'Supplier update proxy failed',
         details: error.response?.data || error.message,
         remoteStatus,
       });

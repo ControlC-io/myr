@@ -46,9 +46,10 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   const { t } = useTranslation("common");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const hasActiveFilters = Boolean(status || dateFrom || dateTo);
+  const hasActiveFilters = Boolean(search || status || dateFrom || dateTo);
 
   const clearFilters = () => {
+    onSearchChange("");
     onStatusChange?.("");
     onDateFromChange?.("");
     onDateToChange?.("");
@@ -100,6 +101,21 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 onChange={(e) => onSearchChange(e.target.value)}
               />
             </div>
+
+            {/* Clear filters button — visible only when filters are active */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                title={t("filters.clear", "Clear filters")}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md border border-border dark:border-border-dark text-textSecondary dark:text-textSecondary-dark hover:text-pink hover:border-pink/40 hover:bg-pink/5 transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {t("filters.clear", "Clear filters")}
+              </button>
+            )}
 
             {/* Filter toggle button */}
             {(onStatusChange || onDateFromChange || onDateToChange) && (

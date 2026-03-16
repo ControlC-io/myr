@@ -27,9 +27,11 @@ const TicketsPage = () => {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgError, setOrgError] = useState<string | null>(null);
 
+  const todayISO = new Date().toISOString().split("T")[0];
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
+  const [dateFrom, setDateFrom] = useState(todayISO);
   const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {

@@ -12,13 +12,16 @@
     "status": "Statut",
     "all": "Tous",
     "dateFrom": "Du",
-    "dateTo": "Au"
+    "dateTo": "Au",
+    "toggle": "Filtres",
+    "clear": "Effacer les filtres"
   },
   "nav": {
     "home": "Accueil",
     "dashboard": "Tableau de bord",
     "info": "Infos",
-    "admin": "Admin"
+    "admin": "Admin",
+    "menu": "Menu"
   },
   "auth": {
     "signedInAs": "Connecté en tant que",
@@ -78,9 +81,16 @@
     }
   },
   "pages": {
-    "tickets": { "title": "Gestion des tickets" },
+    "tickets": {
+      "title": "Gestion des tickets",
+      "empty": "Aucun ticket ne correspond à vos critères"
+    },
     "interventions": { "title": "Interventions à venir" },
-    "billing": { "title": "Facturation" },
+    "billing": {
+      "title": "Facturation",
+      "subtitle": "Aperçu de vos factures ouvertes et solde de compte",
+      "empty": "Vous n'avez aucune facture correspondant à vos critères"
+    },
     "paymentInfo": { "title": "Informations de paiement" },
     "sepa": { "title": "Prélèvement SEPA" },
     "customerInfo": {
@@ -113,11 +123,43 @@
         "salesManager": "Responsable commercial",
         "internSalesManager": "Responsable commercial interne",
         "notAssigned": "Non assigné"
+      },
+      "edit": {
+        "banner": "Vous modifiez les informations client. Les changements ne sont pas encore enregistrés.",
+        "saveChanges": "Enregistrer",
+        "cancel": "Annuler",
+        "saving": "Enregistrement...",
+        "saveSuccess": "Modifications enregistrées",
+        "saveErrorNoContact": "Impossible d'identifier votre identifiant contact. Veuillez contacter le support.",
+        "addContact": "Ajouter un contact",
+        "add": "Ajouter",
+        "noData": "Aucune donnée disponible.",
+        "contactColumns": {
+          "name": "Nom",
+          "phone": "Téléphone",
+          "phone2": "Téléphone 2",
+          "mobile": "Mobile",
+          "email": "Email",
+          "roles": "Rôles"
+        },
+        "newContact": {
+          "firstname": "Prénom",
+          "lastname": "Nom",
+          "email": "Email",
+          "role": "Rôle",
+          "firstnamePlaceholder": "Marie",
+          "lastnamePlaceholder": "Dupont",
+          "emailPlaceholder": "marie@exemple.com",
+          "rolePlaceholder": "ex. TECHNIQUE"
+        }
       }
     },
     "bcpRooms": { "title": "Réservation de salles BCP" },
     "offers": { "title": "Offres" },
-    "orders": { "title": "Commandes" },
+    "orders": {
+      "title": "Commandes",
+      "empty": "Vous n'avez aucune commande correspondant à vos critères"
+    },
     "contracts": { "title": "Contrats" },
     "kyc": { "title": "KYC" },
     "security": { "title": "Sécurité" },
@@ -130,7 +172,7 @@
     "header": {
       "titleSuffix": "Panel",
       "subtitle": "Plateforme de gestion avec architecture réseau segmentée",
-      "statusChip": "L’état des services est indiqué ci-dessous"
+      "statusChip": "L'état des services est indiqué ci-dessous"
     },
     "features": {
       "title": "Fonctionnalités",
@@ -144,11 +186,11 @@
           "description": "Backend et base de données jamais exposés directement à Internet."
         },
         "rbac": {
-          "title": "Contrôle d’accès par rôles",
+          "title": "Contrôle d'accès par rôles",
           "description": "Utilisateurs et administrateurs avec des permissions différenciées."
         },
         "audit": {
-          "title": "Journalisation d’audit",
+          "title": "Journalisation d'audit",
           "description": "Journal de chaque action avec horodatage, utilisateur et IP."
         },
         "sessions": {
@@ -162,7 +204,7 @@
       }
     },
     "architecture": {
-      "title": "Schéma d’architecture",
+      "title": "Schéma d'architecture",
       "internet": "Internet / Client",
       "dmzZone": "Zone DMZ",
       "dmz": {
@@ -183,7 +225,7 @@
         "databaseTitle": "PostgreSQL",
         "databaseSubtitle": "Base de données",
         "ormTitle": "Prisma ORM",
-        "ormSubtitle": "Couche d’accès"
+        "ormSubtitle": "Couche d'accès"
       },
       "legendLabel": "Légende :",
       "legend": {
@@ -202,6 +244,18 @@
   "placeholders": {
     "underConstruction": "Cette section est en cours de construction. Les fonctionnalités seront ajoutées prochainement.",
     "loading": "Chargement..."
+  },
+  "actions": {
+    "refresh": "Actualiser",
+    "refreshing": "Actualisation...",
+    "retry": "Réessayer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
+  },
+  "errors": {
+    "generic": "Un problème est survenu lors du chargement des données",
+    "billingLoad": "Un problème est survenu lors du chargement de vos factures"
   },
   "tickets": {
     "columns": {
@@ -222,6 +276,29 @@
       "status": "Statut"
     }
   },
+  "billing": {
+    "summary": {
+      "totalOutstanding": "Total en attente"
+    },
+    "columns": {
+      "invoice": "Facture",
+      "label": "Libellé",
+      "issueDate": "Date d'émission",
+      "dueDate": "Date d'échéance",
+      "amount": "Montant",
+      "balance": "Solde",
+      "flags": "Indicateurs",
+      "status": "Statut"
+    },
+    "flags": {
+      "blocked": "Bloqué",
+      "complaint": "Litige"
+    },
+    "status": {
+      "open": "Ouvert",
+      "closed": "Fermé"
+    }
+  },
   "dashboard": {
     "home": {
       "welcome": "Bienvenue, {{name}}",
@@ -229,7 +306,7 @@
       "titleHighlight": "MyR",
       "title": "Bienvenue sur MyR",
       "description": "Gérez vos tickets, factures, contrats et services depuis un espace unique et sécurisé.",
-      "description2": "Effectuez facilement les actions essentielles comme la création de tickets, l’export de données et l’accès à vos formations Rsecure.",
+      "description2": "Effectuez facilement les actions essentielles comme la création de tickets, l'export de données et l'accès à vos formations Rsecure.",
       "loading": "Chargement du tableau de bord...",
       "sections": {
         "ticketing": "Tickets & Support",
@@ -264,7 +341,7 @@
       "emailLabel": "Email",
       "nameLabel": "Nom",
       "nameNotSet": "Non renseigné",
-      "architectureCardTitle": "État de l’architecture",
+      "architectureCardTitle": "État de l'architecture",
       "architecture": {
         "nginx": "NGINX Reverse Proxy (DMZ)",
         "frontend": "Frontend React (DMZ)",
@@ -287,7 +364,7 @@
         "enable2fa": "Activer la 2FA"
       },
       "disableModal": {
-        "title": "Désactiver l’authentification à deux facteurs",
+        "title": "Désactiver l'authentification à deux facteurs",
         "body": "Êtes-vous sûr de vouloir désactiver la 2FA ? Votre compte sera moins bien protégé.",
         "passwordLabel": "Confirmez votre mot de passe",
         "passwordPlaceholder": "Saisissez votre mot de passe",
@@ -297,9 +374,8 @@
       },
       "note": {
         "label": "Note de sécurité :",
-        "text": "Votre session est protégée par des cookies HTTP-only et tout le trafic passe par l’architecture segmentée en DMZ."
+        "text": "Votre session est protégée par des cookies HTTP-only et tout le trafic passe par l'architecture segmentée en DMZ."
       }
     }
   }
 }
-

@@ -12,13 +12,16 @@
     "status": "Status",
     "all": "All",
     "dateFrom": "From",
-    "dateTo": "To"
+    "dateTo": "To",
+    "toggle": "Filters",
+    "clear": "Clear filters"
   },
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",
     "info": "Info",
-    "admin": "Admin"
+    "admin": "Admin",
+    "menu": "Menu"
   },
   "auth": {
     "signedInAs": "Signed in as",
@@ -78,12 +81,15 @@
     }
   },
   "pages": {
-    "tickets": { "title": "Ticket management" },
+    "tickets": {
+      "title": "Ticket management",
+      "empty": "No tickets match your criteria"
+    },
     "interventions": { "title": "Upcoming interventions" },
     "billing": {
       "title": "Billing",
       "subtitle": "Overview of your open invoices and account balance",
-      "empty": "You do not have any open invoices for this account"
+      "empty": "You do not have any invoices matching your criteria"
     },
     "paymentInfo": { "title": "Payment information" },
     "sepa": { "title": "SEPA Direct Debit" },
@@ -117,11 +123,43 @@
         "salesManager": "Sales manager",
         "internSalesManager": "Intern sales manager",
         "notAssigned": "Not assigned"
+      },
+      "edit": {
+        "banner": "You are editing customer information. Changes are not saved yet.",
+        "saveChanges": "Save changes",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "saveSuccess": "Changes saved",
+        "saveErrorNoContact": "Could not identify your contact ID. Please contact support.",
+        "addContact": "Add contact",
+        "add": "Add",
+        "noData": "No data available.",
+        "contactColumns": {
+          "name": "Name",
+          "phone": "Phone",
+          "phone2": "Phone 2",
+          "mobile": "Mobile",
+          "email": "Email",
+          "roles": "Roles"
+        },
+        "newContact": {
+          "firstname": "First name",
+          "lastname": "Last name",
+          "email": "Email",
+          "role": "Role",
+          "firstnamePlaceholder": "Jane",
+          "lastnamePlaceholder": "Doe",
+          "emailPlaceholder": "jane@example.com",
+          "rolePlaceholder": "e.g. TECHNIQUE"
+        }
       }
     },
     "bcpRooms": { "title": "BCP room booking" },
     "offers": { "title": "Offers" },
-    "orders": { "title": "Orders" },
+    "orders": {
+      "title": "Orders",
+      "empty": "You do not have any orders matching your criteria"
+    },
     "contracts": { "title": "Contracts" },
     "kyc": { "title": "KYC" },
     "security": { "title": "Security" },
@@ -209,7 +247,11 @@
   },
   "actions": {
     "refresh": "Refresh",
-    "retry": "Try again"
+    "refreshing": "Refreshing...",
+    "retry": "Try again",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   },
   "errors": {
     "generic": "There was a problem loading data",
@@ -245,11 +287,16 @@
       "dueDate": "Due date",
       "amount": "Amount",
       "balance": "Balance",
-      "flags": "Flags"
+      "flags": "Flags",
+      "status": "Status"
     },
     "flags": {
       "blocked": "Blocked",
       "complaint": "Complaint"
+    },
+    "status": {
+      "open": "Open",
+      "closed": "Closed"
     }
   },
   "dashboard": {
@@ -332,4 +379,3 @@
     }
   }
 }
-
