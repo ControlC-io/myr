@@ -459,6 +459,43 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/orgs/:orgId/proxy/bcp-bookings
+// Proxies the BCP room booking list and filters to this org's customer.
+// Minimum role: VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/:orgId/proxy/bcp-bookings',
+  checkOrganizationAccess(MemberRole.VIEWER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId } = req.params;
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) { res.status(404).json({ error: 'Organization not found' }); return; }
+
+      const bookings = await proxyRestPost('/api/bcp/roombooking/list');
+
+      await createAuditLog(
+        'PROXY_API_CALL',
+        req.user!.userId,
+        { orgId, externalReferenceId: org.externalReferenceId, endpoint: 'bcp-bookings' },
+        orgId,
+      );
+
+      res.json(bookings);
+    } catch (error: any) {
+      console.error('Proxy BCP bookings request failed:', error);
+      const remoteStatus = error.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
+        error: 'Proxy request failed',
+        details: error.response?.data || error.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/orgs/:orgId/proxy/supplier/update
 // Proxies multiple REST requests to Rapix to update supplier and/or contacts.
 // Minimum role: MANAGER

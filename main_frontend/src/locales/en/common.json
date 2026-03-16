@@ -85,7 +85,14 @@
       "title": "Ticket management",
       "empty": "No tickets match your criteria"
     },
-    "interventions": { "title": "Upcoming interventions" },
+    "interventions": {
+      "title": "Interventions to come",
+      "empty": "No interventions to display",
+      "tabs": {
+        "list": "LIST",
+        "calendar": "CALENDAR VIEW"
+      }
+    },
     "billing": {
       "title": "Billing",
       "subtitle": "Overview of your open invoices and account balance",
@@ -154,7 +161,35 @@
         }
       }
     },
-    "bcpRooms": { "title": "BCP room booking" },
+    "bcpRooms": {
+      "title": "BCP room booking",
+      "empty": "No reservations to display",
+      "tabs": {
+        "list": "LIST",
+        "calendar": "CALENDAR VIEW"
+      },
+      "columns": {
+        "date": "Date",
+        "time": "Time",
+        "rooms": "Rooms",
+        "type": "Type",
+        "seats": "Seats",
+        "status": "Status",
+        "comment": "Comment"
+      },
+      "type": {
+        "bcp": "BCP",
+        "drp": "DRP",
+        "both": "BCP + DRP"
+      },
+      "status": {
+        "1": "Open slot",
+        "2": "Tentative",
+        "3": "Scheduled",
+        "4": "Confirmed",
+        "5": "Closed"
+      }
+    },
     "offers": { "title": "Offers" },
     "orders": {
       "title": "Orders",

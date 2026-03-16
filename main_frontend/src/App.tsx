@@ -16,6 +16,8 @@ import TicketsPage from "./pages/TicketsPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InformationClient from "./pages/InformationClient";
 import OrdersPage from "./pages/OrdersPage";
+import InterventionsPage from "./pages/InterventionsPage";
+import BcpRoomsPage from "./pages/BcpRoomsPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 
 const AppRoutes = () => {
@@ -58,10 +60,7 @@ const AppRoutes = () => {
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/info" element={<InfoPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
-          <Route
-            path="/interventions"
-            element={<PlaceholderPage titleKey="pages.interventions.title" />}
-          />
+          <Route path="/interventions" element={<InterventionsPage />} />
           <Route path="/facturation" element={<InvoicesPage />} />
           <Route
             path="/payment-information"
@@ -75,10 +74,7 @@ const AppRoutes = () => {
             path="/information-client"
             element={<InformationClient />}
           />
-          <Route
-            path="/reservation-salles-bcp"
-            element={<PlaceholderPage titleKey="pages.bcpRooms.title" />}
-          />
+          <Route path="/reservation-salles-bcp" element={<BcpRoomsPage />} />
           <Route
             path="/suggestions"
             element={<PlaceholderPage titleKey="pages.suggestions.title" />}
@@ -128,7 +124,7 @@ const App = () => {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col font-sans transition-colors duration-300">
               <AppRoutes />
