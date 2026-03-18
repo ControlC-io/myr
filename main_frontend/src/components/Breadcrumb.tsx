@@ -22,7 +22,7 @@ const BREADCRUMB_MAP: Record<string, BreadcrumbItem[]> = {
   '/commandes':              [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Sales' }, { label: 'Orders' }],
   '/commandes/:id':          [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Sales' }, { label: 'Orders', href: '/commandes' }, { label: 'Detail' }],
   '/commande-rapide':        [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Sales' }, { label: 'Quick Order' }],
-  '/contrats':               [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Contracts' }],
+  '/services':               [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Services' }],
   '/securite':               [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Security' }],
   '/ressources':             [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Resources' }],
   '/kyc':                    [{ label: 'Dashboard', href: '/dashboard' }, { label: 'KYC' }],

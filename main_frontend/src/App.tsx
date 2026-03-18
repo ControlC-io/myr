@@ -13,6 +13,7 @@ import Breadcrumb from "./components/Breadcrumb";
 import DashboardHome from "./pages/DashboardHome";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import SepaPage from "./pages/SepaPage";
+import PaymentInformationPage from "./pages/PaymentInformationPage";
 import TicketsPage from "./pages/TicketsPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InformationClient from "./pages/InformationClient";
@@ -25,6 +26,9 @@ import OffresPage from "./pages/OffresPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import OfferDetailPage from "./pages/OfferDetailPage";
+import ServicesPage from "./pages/ServicesPage";
+import KycPage from "./pages/KycPage";
+import DataDeletionPage from "./pages/DataDeletionPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 
 const AppRoutes = () => {
@@ -72,7 +76,7 @@ const AppRoutes = () => {
           <Route path="/facturation" element={<InvoicesPage />} />
           <Route
             path="/payment-information"
-            element={<PlaceholderPage titleKey="pages.paymentInfo.title" />}
+            element={<PaymentInformationPage />}
           />
           <Route path="/sepa" element={<SepaPage />} />
           <Route
@@ -85,14 +89,8 @@ const AppRoutes = () => {
           <Route path="/offer/:offerId" element={<OfferDetailPage />} />
           <Route path="/commandes" element={<OrdersPage />} />
           <Route path="/commandes/:orderId" element={<OrderDetailPage />} />
-          <Route
-            path="/contrats"
-            element={<PlaceholderPage titleKey="pages.contracts.title" />}
-          />
-          <Route
-            path="/kyc"
-            element={<PlaceholderPage titleKey="pages.kyc.title" />}
-          />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/kyc" element={<KycPage />} />
           <Route
             path="/securite"
             element={<PlaceholderPage titleKey="pages.security.title" />}
@@ -101,7 +99,7 @@ const AppRoutes = () => {
           <Route path="/ressources/external-services" element={<ResourcesPage />} />
           <Route
             path="/data-deletion"
-            element={<PlaceholderPage titleKey="pages.dataDeletion.title" />}
+            element={<DataDeletionPage />}
           />
           <Route
             path="/commande-rapide"

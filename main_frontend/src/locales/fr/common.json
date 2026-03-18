@@ -211,7 +211,8 @@
       "empty": "Vous n'avez aucune commande correspondant à vos critères"
     },
     "contracts": { "title": "Contrats" },
-    "kyc": { "title": "KYC" },
+    "services": { "title": "Contrats", "empty": "Vous n'avez aucun contrat correspondant à vos critères" },
+    "kyc": { "title": "KYC", "empty": "Aucun document KYC trouvé." },
     "security": { "title": "Sécurité" },
     "resources": {
       "title": "Ressources",
@@ -252,7 +253,13 @@
         "other": "Autre"
       }
     },
-    "dataDeletion": { "title": "Suppression des données" }
+    "dataDeletion": {
+      "title": "Demande de suppression des données",
+      "description": "Conformément à la législation sur la protection des données, vous avez le droit de demander la suppression de vos données personnelles. Toutefois, certaines données peuvent être légalement conservées pour le suivi de votre dossier et le respect de nos obligations légales. Nous nous engageons à traiter votre demande dans les meilleurs délais.",
+      "placeholder": "Veuillez préciser quelles données vous souhaitez supprimer ainsi que toute information complémentaire ou contextuelle relative à votre demande de suppression.",
+      "confirmation": "Je confirme ma demande de suppression des données et j'ai pris connaissance des informations relatives à la conservation de certaines données.",
+      "submit": "Envoyer la demande"
+    }
   },
   "home": {
     "header": {
@@ -428,6 +435,26 @@
       "EN_ATTENTE": "En attente"
     }
   },
+  "services": {
+    "columns": {
+      "name": "Nom",
+      "type": "Type",
+      "dateStart": "Date de début",
+      "dateEnd": "Date de fin",
+      "status": "Statut"
+    },
+    "status": {}
+  },
+  "kyc": {
+    "columns": {
+      "name": "Nom du document",
+      "type": "Type",
+      "date": "Date",
+      "expiryDate": "Date d'expiration",
+      "status": "Statut"
+    },
+    "status": {}
+  },
   "offers": {
     "columns": {
       "reference": "Référence",
@@ -514,6 +541,7 @@
         "offres": "Offres",
         "commandes": "Commandes",
         "contrats": "Contrats",
+        "services": "Contrats",
         "kyc": "KYC",
         "securite": "Sécurité",
         "ressources": "Ressources",

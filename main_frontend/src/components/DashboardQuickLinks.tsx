@@ -127,6 +127,7 @@ const iconMap: Record<string, () => JSX.Element> = {
   offres: TagIcon,
   commandes: BoxIcon,
   contrats: ContractIcon,
+  services: ContractIcon,
 };
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -157,7 +158,7 @@ const sections: Section[] = [
     links: [
       { id: "offres", type: "internal", to: "/offer", badge: "New", badgeVariant: "new" },
       { id: "commandes", type: "internal", to: "/commandes" },
-      { id: "contrats", type: "internal", to: "/contrats" },
+      { id: "services", type: "internal", to: "/services" },
     ],
   },
 ];

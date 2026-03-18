@@ -44,14 +44,9 @@ const primaryNavItems: PrimaryNavItem[] = [
       { label: "Orders", to: "/commandes" },
     ],
   },
-  { label: "Contracts", to: "/contrats" },
+  { label: "Contracts", to: "/services" },
   { label: "Security", to: "/securite" },
-  {
-    label: "Resources",
-    submenu: [
-      { label: "External services", to: "/ressources/external-services" },
-    ],
-  },
+  { label: "Resources", to: "/ressources/external-services" },
 ];
 
 const Navbar = () => {

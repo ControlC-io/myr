@@ -211,7 +211,8 @@
       "empty": "You do not have any orders matching your criteria"
     },
     "contracts": { "title": "Contracts" },
-    "kyc": { "title": "KYC" },
+    "services": { "title": "Contracts", "empty": "You do not have any contracts matching your criteria" },
+    "kyc": { "title": "KYC", "empty": "No KYC documents found." },
     "security": { "title": "Security" },
     "resources": {
       "title": "Resources",
@@ -252,7 +253,13 @@
         "other": "Other"
       }
     },
-    "dataDeletion": { "title": "Data deletion" }
+    "dataDeletion": {
+      "title": "Request for Data Deletion",
+      "description": "In accordance with data protection legislation, you have the right to request the deletion of your personal data. However, please note that some data may be legally retained for the monitoring of your file and to comply with our legal obligations. We undertake to process your request as soon as possible.",
+      "placeholder": "Please specify what data you wish to delete and any additional or contextual information regarding your deletion request.",
+      "confirmation": "I confirm my request for deletion of data and I have read the information regarding the retention of certain data.",
+      "submit": "Send request"
+    }
   },
   "home": {
     "header": {
@@ -428,6 +435,26 @@
       "EN_ATTENTE": "Pending"
     }
   },
+  "services": {
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "dateStart": "Start Date",
+      "dateEnd": "End Date",
+      "status": "Status"
+    },
+    "status": {}
+  },
+  "kyc": {
+    "columns": {
+      "name": "Document Name",
+      "type": "Type",
+      "date": "Date",
+      "expiryDate": "Expiry Date",
+      "status": "Status"
+    },
+    "status": {}
+  },
   "offers": {
     "columns": {
       "reference": "Reference",
@@ -514,6 +541,7 @@
         "offres": "Offers",
         "commandes": "Orders",
         "contrats": "Contracts",
+        "services": "Contracts",
         "kyc": "KYC",
         "securite": "Security",
         "ressources": "Resources",
