@@ -63,6 +63,21 @@ export function buildSupplierQuery(supplierId: string): string {
   }`;
 }
 
+export interface InterventionsQueryParams {
+  supplierId: string;
+  dateBegin: string;
+}
+
+/**
+ * Builds a GraphQL query for upcoming interventions scoped to a client.
+ * dateBegin must be in the form ">YYYY-MM-DD" (e.g. ">2026-03-18").
+ */
+export function buildInterventionsQuery(params: InterventionsQueryParams): string {
+  const id = validateSupplierId(params.supplierId);
+  const sanitized = params.dateBegin.replace(/[^><=\d-]/g, '');
+  return `{ ticalIntervention(date_begin: "${sanitized}", ticket_client_id: ${id}) { total } }`;
+}
+
 export function buildTicketsQuery(params: TicketsQueryParams): string {
   const id = validateSupplierId(params.supplierId);
   const limit = Math.max(1, Math.floor(params.paginLimit));

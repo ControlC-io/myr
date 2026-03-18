@@ -21,6 +21,7 @@ import InterventionsPage from "./pages/InterventionsPage";
 import BcpRoomsPage from "./pages/BcpRoomsPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import SuggestionsPage from "./pages/SuggestionsPage";
+import OffresPage from "./pages/OffresPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 
 const AppRoutes = () => {
@@ -76,10 +77,7 @@ const AppRoutes = () => {
           />
           <Route path="/reservation-salles-bcp" element={<BcpRoomsPage />} />
           <Route path="/suggestions" element={<SuggestionsPage />} />
-          <Route
-            path="/offres"
-            element={<PlaceholderPage titleKey="pages.offers.title" />}
-          />
+          <Route path="/offres" element={<OffresPage />} />
           <Route path="/commandes" element={<OrdersPage />} />
           <Route
             path="/contrats"

@@ -17,7 +17,7 @@ import { MemberRole } from '@prisma/client';
 import { checkOrganizationAccess } from '../middleware/auth';
 import { createAuditLog } from '../middleware/auditLog';
 import { proxyGraphQL, proxyRestGet, proxyRestPost, proxyRestPostJson } from '../services/proxyService';
-import { buildSupplierQuery, buildTicketsQuery } from '../services/decompteQueries';
+import { buildSupplierQuery, buildTicketsQuery, buildInterventionsQuery } from '../services/decompteQueries';
 
 const router = express.Router();
 
@@ -383,6 +383,56 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/orgs/:orgId/proxy/interventions
+// Proxies a GraphQL request for upcoming interventions scoped to this org's client.
+// Minimum role: VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:orgId/proxy/interventions',
+  checkOrganizationAccess(MemberRole.VIEWER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId } = req.params;
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) { res.status(404).json({ error: 'Organization not found' }); return; }
+      if (!org.externalReferenceId) { res.status(403).json({ error: 'Organization has no linked supplier' }); return; }
+
+      const today = new Date().toISOString().split('T')[0];
+      const { dateBegin = `>${today}` } = req.body as { dateBegin?: string };
+
+      let query: string;
+      try {
+        query = buildInterventionsQuery({ supplierId: org.externalReferenceId, dateBegin });
+      } catch {
+        res.status(403).json({ error: 'Organization has no valid supplier reference' });
+        return;
+      }
+
+      const externalJson = await proxyGraphQL(query) as { data?: { ticalIntervention?: unknown } };
+
+      await createAuditLog(
+        'PROXY_API_CALL',
+        req.user!.userId,
+        { orgId, externalReferenceId: org.externalReferenceId, endpoint: 'interventions' },
+        orgId,
+      );
+
+      const intervention = externalJson.data?.ticalIntervention ?? null;
+      res.json({ intervention });
+    } catch (error: any) {
+      console.error('Proxy interventions request failed:', error);
+      const remoteStatus = error.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
+        error: 'Proxy request failed',
+        details: error.response?.data || error.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/orgs/:orgId/proxy/factures
 // Proxies a REST request for billing documents.
 // Minimum role: VIEWER
@@ -448,6 +498,44 @@ router.post(
       res.json(data);
     } catch (error: any) {
       console.error('Proxy orders request failed:', error);
+      const remoteStatus = error.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
+        error: 'Proxy request failed',
+        details: error.response?.data || error.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/orgs/:orgId/proxy/offers
+// Proxies a REST POST request for the offer list scoped to this org's client.
+// Minimum role: VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:orgId/proxy/offers',
+  checkOrganizationAccess(MemberRole.VIEWER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId } = req.params;
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) { res.status(404).json({ error: 'Organization not found' }); return; }
+      if (!org.externalReferenceId) { res.status(403).json({ error: 'Organization has no linked supplier' }); return; }
+
+      const data = await proxyRestPost('/api/offer/list', { clientId: org.externalReferenceId });
+
+      await createAuditLog(
+        'PROXY_API_CALL',
+        req.user!.userId,
+        { orgId, externalReferenceId: org.externalReferenceId, endpoint: 'offers' },
+        orgId,
+      );
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Proxy offers request failed:', error);
       const remoteStatus = error.response?.status;
       res.status(remoteStatus ? 502 : 500).json({
         error: 'Proxy request failed',
