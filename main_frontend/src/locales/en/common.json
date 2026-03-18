@@ -337,7 +337,8 @@
     "retry": "Try again",
     "saving": "Saving...",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "export": "Export"
   },
   "errors": {
     "generic": "There was a problem loading data",

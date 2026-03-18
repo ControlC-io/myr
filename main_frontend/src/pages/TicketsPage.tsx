@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import { useAuth } from "@shared/auth";
 import { getJson } from "../api/client";
 import { useTickets } from "../features/tickets/hooks";
@@ -124,6 +125,41 @@ const TicketsPage = () => {
     { label: "Closed", value: "closed" },
   ];
 
+  const formatDateCell = (iso: string | null | undefined): string => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const exportToXlsx = () => {
+    const rows = filteredTickets.map((ticket) => ({
+      ID: ticket.id,
+      Label: ticket.name ?? "",
+      Opened: formatDateCell(ticket.date),
+      Status: ticket.status ?? "",
+      Solved: formatDateCell(ticket.solvedate),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    // Column widths
+    worksheet["!cols"] = [
+      { wch: 10 },
+      { wch: 60 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+    XLSX.writeFile(workbook, "tickets.xlsx");
+  };
+
   if (authLoading || jwtLoading || (orgId === null && !orgError)) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -167,6 +203,21 @@ const TicketsPage = () => {
           isRefetching={isRefetching}
           onRefetch={refetch}
           disabled={!!orgError}
+          extraRight={
+            !isLoading && !isError && filteredTickets.length > 0 ? (
+              <button
+                type="button"
+                onClick={exportToXlsx}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded border border-border dark:border-border-dark text-textSecondary dark:text-textSecondary-dark hover:border-green-500/60 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-500/5 transition-colors shrink-0"
+                title="Export to Excel"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {t("actions.export", "Export")}
+              </button>
+            ) : undefined
+          }
         />
 
         {/* Tickets table section */}

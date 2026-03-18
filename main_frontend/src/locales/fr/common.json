@@ -337,7 +337,8 @@
     "retry": "Réessayer",
     "saving": "Enregistrement...",
     "cancel": "Annuler",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "export": "Exporter"
   },
   "errors": {
     "generic": "Un problème est survenu lors du chargement des données",
