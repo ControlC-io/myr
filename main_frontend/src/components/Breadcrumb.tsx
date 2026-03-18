@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 interface BreadcrumbItem {
   label: string;
@@ -8,6 +8,7 @@ interface BreadcrumbItem {
 const BREADCRUMB_MAP: Record<string, BreadcrumbItem[]> = {
   '/info':                   [{ label: 'Dashboard', href: '/dashboard' }, { label: 'User Info' }],
   '/tickets':                [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Ticketing' }, { label: 'Tickets' }],
+  '/tickets/:id':            [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Ticketing' }, { label: 'Tickets', href: '/tickets' }, { label: 'Detail' }],
   '/interventions':          [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Ticketing' }, { label: 'Interventions' }],
   '/facturation':            [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administrative' }, { label: 'Invoices' }],
   '/payment-information':    [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administrative' }, { label: 'Payment Information' }],
@@ -27,12 +28,25 @@ const BREADCRUMB_MAP: Record<string, BreadcrumbItem[]> = {
 
 const HIDDEN_ROUTES = new Set(['/', '/dashboard', '/login', '/register', '/auth/forgot-password', '/auth/reset-password', '/auth/2fa-challenge', '/auth/email-otp']);
 
+function matchBreadcrumb(pathname: string): BreadcrumbItem[] | null {
+  // Exact match first
+  if (BREADCRUMB_MAP[pathname]) return BREADCRUMB_MAP[pathname];
+  // Dynamic segment match: replace last segment with ':id'
+  const slashIdx = pathname.lastIndexOf('/');
+  if (slashIdx > 0) {
+    const pattern = pathname.slice(0, slashIdx) + '/:id';
+    if (BREADCRUMB_MAP[pattern]) return BREADCRUMB_MAP[pattern];
+  }
+  return null;
+}
+
 const Breadcrumb = () => {
   const { pathname } = useLocation();
+  useParams(); // keep router context in sync
 
   if (HIDDEN_ROUTES.has(pathname)) return null;
 
-  const items = BREADCRUMB_MAP[pathname];
+  const items = matchBreadcrumb(pathname);
   if (!items) return null;
 
   return (

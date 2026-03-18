@@ -20,7 +20,7 @@ export interface TicketGroup {
 }
 
 export interface TicketIntervention {
-  non_facturable?: boolean;
+  non_facturable?: boolean | number;
   desc_facturation?: string | null;
   preste?: string | null;
   date_begin?: string | null;

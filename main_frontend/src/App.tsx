@@ -22,6 +22,7 @@ import BcpRoomsPage from "./pages/BcpRoomsPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import SuggestionsPage from "./pages/SuggestionsPage";
 import OffresPage from "./pages/OffresPage";
+import TicketDetailPage from "./pages/TicketDetailPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 
 const AppRoutes = () => {
@@ -64,6 +65,7 @@ const AppRoutes = () => {
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/info" element={<InfoPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
+          <Route path="/tickets/:ticketId" element={<TicketDetailPage />} />
           <Route path="/interventions" element={<InterventionsPage />} />
           <Route path="/facturation" element={<InvoicesPage />} />
           <Route

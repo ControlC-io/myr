@@ -233,7 +233,7 @@ const BcpRoomsPage = () => {
                     {sortedBookings.map((b: BcpBooking) => (
                       <tr
                         key={b.id}
-                        className="hover:bg-backgroundSecondary/50 dark:hover:bg-backgroundSecondary-dark/50 transition-colors"
+                        className="table-row"
                       >
                         <td className="px-6 py-4 text-sm font-medium text-textPrimary dark:text-textPrimary-dark whitespace-nowrap">
                           {formatDate(b.start_datetime)}

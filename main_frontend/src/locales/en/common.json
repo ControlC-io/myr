@@ -350,6 +350,25 @@
       "opened": "Opened",
       "status": "Status",
       "solved": "Solved"
+    },
+    "detail": {
+      "ticketNumber": "Ticket n°{{id}}",
+      "back": "Back to tickets",
+      "notFound": "Ticket not found. Please go back to the list.",
+      "category": "Category",
+      "priority": "Priority",
+      "opened": "Opened",
+      "closed": "Closed",
+      "technician": "Technician",
+      "group": "Group",
+      "project": "Project",
+      "interventionPlanning": "Intervention Planning",
+      "date": "Date",
+      "hoursWorked": "Number of hours worked",
+      "actionsTaken": "Actions taken",
+      "nonBillable": "Non-billable",
+      "billable": "Billable",
+      "initialRequest": "Initial request"
     }
   },
   "orders": {

@@ -350,6 +350,25 @@
       "opened": "Ouvert le",
       "status": "Statut",
       "solved": "Résolu le"
+    },
+    "detail": {
+      "ticketNumber": "Ticket n°{{id}}",
+      "back": "Retour aux tickets",
+      "notFound": "Ticket introuvable. Veuillez retourner à la liste.",
+      "category": "Catégorie",
+      "priority": "Priorité",
+      "opened": "Ouvert",
+      "closed": "Fermé",
+      "technician": "Technicien",
+      "group": "Groupe",
+      "project": "Projet",
+      "interventionPlanning": "Planning d'intervention",
+      "date": "Date",
+      "hoursWorked": "Nombre d'heures travaillées",
+      "actionsTaken": "Actions effectuées",
+      "nonBillable": "Non facturable",
+      "billable": "Facturable",
+      "initialRequest": "Demande initiale"
     }
   },
   "orders": {

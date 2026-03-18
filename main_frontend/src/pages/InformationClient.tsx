@@ -745,7 +745,7 @@ export default function InformationClient() {
                   {displayContacts.map((contactWrapper, idx) => (
                     <tr
                       key={contactWrapper.contact.id || idx}
-                      className="hover:bg-backgroundSecondary/50 dark:hover:bg-backgroundSecondary-dark/50 transition-colors group"
+                      className="table-row group"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">

@@ -105,7 +105,7 @@
     @apply divide-y divide-border dark:divide-border-dark;
   }
   .table-row {
-    @apply hover:bg-secondary/5 dark:hover:bg-white/[0.04];
+    @apply hover:bg-secondary/10 dark:hover:bg-white/[0.06];
     @apply transition-colors duration-150;
   }
   .table-cell {

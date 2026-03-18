@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@shared/auth";
 import { getJson } from "../api/client";
 import { useTickets } from "../features/tickets/hooks";
@@ -23,6 +24,7 @@ const statusColors: Record<string, string> = {
 const TicketsPage = () => {
   const { jwtToken, loading: authLoading, jwtLoading } = useAuth();
   const { t } = useTranslation("common");
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgError, setOrgError] = useState<string | null>(null);
@@ -228,7 +230,8 @@ const TicketsPage = () => {
                     {filteredTickets.map((ticket: Ticket) => (
                       <tr
                         key={ticket.id}
-                        className="hover:bg-backgroundSecondary/50 dark:hover:bg-backgroundSecondary-dark/50 transition-colors group"
+                        className="table-row group cursor-pointer"
+                        onClick={() => navigate(`/tickets/${ticket.id}`, { state: { ticket } })}
                       >
                         <td className="px-6 py-4">
                           <span className="text-sm font-bold text-textPrimary dark:text-textPrimary-dark group-hover:text-pink transition-colors">
