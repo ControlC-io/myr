@@ -120,6 +120,8 @@ export const checkOrganizationAccess = (requiredRole: OrgRoleRequirement = Membe
       );
       res.status(403).json({
         error: 'Forbidden: you are not a member of this organization',
+        source: 'org_membership',
+        code: 'ORG_MEMBERSHIP_REQUIRED',
         orgId,
       });
       return;
@@ -132,6 +134,8 @@ export const checkOrganizationAccess = (requiredRole: OrgRoleRequirement = Membe
       );
       res.status(403).json({
         error: 'Forbidden: insufficient role',
+        source: 'org_role',
+        code: 'ORG_ROLE_INSUFFICIENT',
         yourRole: member.role,
         requiredRole,
       });

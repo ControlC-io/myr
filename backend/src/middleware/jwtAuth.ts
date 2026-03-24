@@ -92,6 +92,8 @@ export const jwtAuth = async (
   if (!allowed) {
     res.status(403).json({
       error: 'Forbidden: your role does not have access to this endpoint',
+      source: 'rbac_global',
+      code: 'RBAC_ROLE_ENDPOINT_DENIED',
       endpoint: req.path,
       method: req.method,
     });

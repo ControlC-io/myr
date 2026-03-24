@@ -190,3 +190,29 @@ All listing endpoints (Logs, Users, Settings) must implement standard pagination
 * **Email‑based OTP** via `email_service` (SendGrid) is implemented and active. Users can choose to receive a 6-digit OTP by email instead of using an authenticator app.
 * Login flow: `Login.tsx` → detects `emailOtpRequired` → `/auth/email-otp` → `EmailOtpChallenge.tsx` → `verifyEmailOtp()`.
 * All email secrets remain in the internal network `.env` and are accessed only via the `email_service` microservice.
+
+---
+
+## 4. Troubleshooting & Onboarding
+
+### 4.1 New User Access Checklist
+When a user is registered but receives a `403 Forbidden` error, follow this checklist:
+
+1. **Identity**: Ensure the user has a valid JWT (check `Authorization: Bearer <token>` header).
+2. **Organization Membership**:
+    * Check the `Member` table for a row matching `userId` and `organizationId`.
+    * Verify the `Member.role` (VIEWER, MANAGER, ADMIN, OWNER) meets the route requirement.
+3. **Organization Configuration**:
+    * For proxy routes (e.g., `/api/orgs/:orgId/proxy/*`), ensure `Organization.externalReferenceId` is correctly set in the database.
+4. **Global RBAC**:
+    * Check if the endpoint has an entry in `RoleEndpointMapping`. If it does, the user must have a matching `UserRole` assigned.
+5. **Diagnostic Fields**:
+    * The `403` response includes `source` and `code` fields to identify which layer blocked the request:
+        * `source: 'rbac_global'`, `code: 'RBAC_ROLE_ENDPOINT_DENIED'`: Blocked by the gateway-level RBAC (missing `UserRole` for a mapped endpoint).
+        * `source: 'org_membership'`, `code: 'ORG_MEMBERSHIP_REQUIRED'`: Blocked because the user is not a member of the organization.
+        * `source: 'org_role'`, `code: 'ORG_ROLE_INSUFFICIENT'`: Blocked because the user's role in the organization is insufficient.
+
+### 4.2 Switching Organizations
+The backend does not track an "active" organization in the session. Access is determined per-request:
+* The `orgId` must be passed in the URL (e.g., `/api/orgs/:orgId/...`) or via the `x-organization-id` header.
+* Frontend components must ensure they are using the correct `orgId` for the current context.

@@ -130,6 +130,8 @@ describe('GET /api/orgs/:orgId/profile', () => {
     const res = await request(app).get(path()).set('Authorization', `Bearer ${outsiderJwt}`);
     expect(res.status).toBe(403);
     expect(res.body.error).toMatch(/not a member/i);
+    expect(res.body.source).toBe('org_membership');
+    expect(res.body.code).toBe('ORG_MEMBERSHIP_REQUIRED');
   });
 
   it('returns 200 for VIEWER', async () => {
@@ -171,6 +173,8 @@ describe('GET /api/orgs/:orgId/audit-logs', () => {
     const res = await request(app).get(path()).set('Authorization', `Bearer ${viewerJwt}`);
     expect(res.status).toBe(403);
     expect(res.body.error).toMatch(/insufficient role/i);
+    expect(res.body.source).toBe('org_role');
+    expect(res.body.code).toBe('ORG_ROLE_INSUFFICIENT');
     expect(res.body.yourRole).toBe('VIEWER');
     expect(res.body.requiredRole).toBe('ADMIN');
   });
@@ -236,3 +240,58 @@ describe('JWT tampering & forgery resistance', () => {
     expect(res.body.error).toMatch(/invalid or expired token/i);
   });
 });
+
+// ─── RBAC global 403 ──────────────────────────────────────────────────────────
+
+describe('RBAC global 403', () => {
+  const rbacEmail = `rbac-no-role${EMAIL_SUFFIX}`;
+  const rbacSlug = `${SLUG_PREFIX}rbac`;
+  let rbacTestOrgId: string;
+  let rbacTestUserJwt: string;
+  let rbacRoleName = 'RestrictedRole-' + Date.now();
+
+  beforeAll(async () => {
+    const user = await createTestUser(rbacEmail);
+    const org = await createTestOrgWithMember(rbacSlug, user.id, MemberRole.VIEWER);
+    rbacTestOrgId = org.id;
+    rbacTestUserJwt = signJwt(user.id, user.email);
+
+    // Create a role and a mapping for the profile route
+    await prisma.role.create({
+      data: {
+        name: rbacRoleName,
+        endpointMappings: {
+          create: {
+            endpoint: `/api/orgs/${rbacTestOrgId}/profile`,
+            method: 'GET'
+          }
+        }
+      }
+    });
+
+    // Invalidate the RBAC cache
+    const { invalidateRbacCache } = require('../src/lib/rbac');
+    invalidateRbacCache();
+  });
+
+  afterAll(async () => {
+    await prisma.roleEndpointMapping.deleteMany({
+      where: { endpoint: `/api/orgs/${rbacTestOrgId}/profile` }
+    });
+    await prisma.role.deleteMany({ where: { name: rbacRoleName } });
+    await prisma.member.deleteMany({ where: { organizationId: rbacTestOrgId } });
+    await prisma.organization.delete({ where: { id: rbacTestOrgId } });
+    await prisma.user.deleteMany({ where: { email: rbacEmail } });
+  });
+
+  it('returns 403 with rbac_global source when blocked by RoleEndpointMapping', async () => {
+    const res = await request(app)
+      .get(`/api/orgs/${rbacTestOrgId}/profile`)
+      .set('Authorization', `Bearer ${rbacTestUserJwt}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.source).toBe('rbac_global');
+    expect(res.body.code).toBe('RBAC_ROLE_ENDPOINT_DENIED');
+  });
+});
+

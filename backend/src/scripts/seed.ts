@@ -27,6 +27,14 @@ const seedAuthSettings = async () => {
         clientSecret: '',
         note: 'Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env to enable'
       }
+    },
+    {
+      settingKey: 'auth_assign_default_role',
+      isEnabled: true,
+      providerConfig: {
+        roleName: 'Manager',
+        note: 'Automatically assign this global role to new users on sign-up'
+      }
     }
   ];
 

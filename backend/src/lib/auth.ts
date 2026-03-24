@@ -68,6 +68,33 @@ export const auth = betterAuth({
               email: session.user.email,
               name: session.user.name ?? null
             });
+
+            // Optional: assign default global role
+            const config = await loadAuthConfig();
+            if (config.assignDefaultRoleEnabled) {
+              const defaultRole = await prisma.role.findUnique({
+                where: { name: config.defaultRoleName }
+              });
+
+              if (defaultRole) {
+                // Ensure the UserRole junction exists (idempotent create)
+                await prisma.userRole.upsert({
+                  where: {
+                    userId_roleId: {
+                      userId: session.user.id,
+                      roleId: defaultRole.id
+                    }
+                  },
+                  update: {}, // No change if already exists
+                  create: {
+                    userId: session.user.id,
+                    roleId: defaultRole.id
+                  }
+                }).catch(err => {
+                  console.error('Error assigning default role during sign-up:', err);
+                });
+              }
+            }
           }
         } else if (path === '/sign-out') {
           const session = ctx.context.session;
@@ -101,7 +128,9 @@ export const loadAuthConfig = async () => {
     const config = {
       emailPasswordEnabled: authSettings.find(s => s.settingKey === 'auth_email_password_enabled')?.isEnabled ?? true,
       googleEnabled: authSettings.find(s => s.settingKey === 'auth_google_enabled')?.isEnabled ?? false,
-      githubEnabled: authSettings.find(s => s.settingKey === 'auth_github_enabled')?.isEnabled ?? false
+      githubEnabled: authSettings.find(s => s.settingKey === 'auth_github_enabled')?.isEnabled ?? false,
+      assignDefaultRoleEnabled: authSettings.find(s => s.settingKey === 'auth_assign_default_role')?.isEnabled ?? false,
+      defaultRoleName: (authSettings.find(s => s.settingKey === 'auth_assign_default_role')?.providerConfig as any)?.roleName ?? 'Manager'
     };
 
     console.log('Auth configuration loaded:', config);
@@ -111,7 +140,9 @@ export const loadAuthConfig = async () => {
     return {
       emailPasswordEnabled: true,
       googleEnabled: false,
-      githubEnabled: false
+      githubEnabled: false,
+      assignDefaultRoleEnabled: false,
+      defaultRoleName: 'Manager'
     };
   }
 };
