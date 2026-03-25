@@ -21,7 +21,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<{ twoFactorRedirect?: true; emailOtpRequired?: true }>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  checkSession: () => Promise<void>;
+  checkSession: (commitSync?: boolean) => Promise<void>;
   enable2FA: (password: string) => Promise<TwoFactorSetupData>;
   verify2FASetup: (code: string) => Promise<void>;
   disable2FA: (password: string) => Promise<void>;
@@ -31,4 +31,8 @@ export interface AuthContextType {
   fetchJwtToken: (email: string, password: string) => Promise<boolean>;
   /** Submits the email OTP code and stores the resulting JWT. */
   verifyEmailOtp: (userId: string, code: string) => Promise<void>;
+  /** Sends a passwordless login OTP to the given email. */
+  sendLoginOtp: (email: string) => Promise<void>;
+  /** Signs in using a passwordless OTP received by email. */
+  signInWithEmailOtp: (email: string, otp: string) => Promise<void>;
 }

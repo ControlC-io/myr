@@ -8,17 +8,44 @@ interface LoginFormProps {
   onForgotPassword?: () => void;
 }
 
+const PENDING_2FA_EMAIL_KEY = 'pending_2fa_email';
+
 const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [twoFactorMode, setTwoFactorMode] = useState(false);
   const [code, setCode] = useState('');
   const [trustDevice, setTrustDevice] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, verify2FALogin } = useAuth();
+  const [otpSending, setOtpSending] = useState(false);
+
+  // true after password-login returns twoFactorRedirect (TOTP 2FA required)
+  const [twoFactorMode, setTwoFactorMode] = useState(false);
+  // true after the user clicks "request it here" and a passwordless code is sent
+  const [passwordlessOtpSent, setPasswordlessOtpSent] = useState(false);
+
+  const { login, verify2FALogin, sendLoginOtp, signInWithEmailOtp } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('common');
+
+  // Send a passwordless OTP to the email currently in the email field
+  const handleRequestEmailOtp = async () => {
+    if (!email.trim()) {
+      setError(t('login.form.emailRequired'));
+      return;
+    }
+    setError('');
+    setOtpSending(true);
+    try {
+      await sendLoginOtp(email.trim());
+      setCode('');
+      setPasswordlessOtpSent(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send code');
+    } finally {
+      setOtpSending(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,49 +53,56 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
     setLoading(true);
 
     try {
-      if (!twoFactorMode) {
-        const result = await login(email, password);
-
-        if (result.twoFactorRedirect) {
-          sessionStorage.setItem('pending_2fa_email', email);
-          setTwoFactorMode(true);
-          setError('');
-          return;
-        }
-
-        if (result.emailOtpRequired) {
-          navigate('/auth/email-otp');
-          return;
-        }
-
+      // Passwordless path: user requested a code by email
+      if (passwordlessOtpSent) {
+        if (code.trim().length !== 6) { setError(t('login.form.errorCode')); return; }
+        await signInWithEmailOtp(email.trim(), code.trim());
         onSuccess?.();
         return;
       }
 
-      if (code.trim().length !== 6) {
-        setError(t('login.form.errorCode'));
+      // 2FA TOTP path: user already logged in with password, needs 2FA code
+      if (twoFactorMode) {
+        if (code.trim().length !== 6) { setError(t('login.form.errorCode')); return; }
+        await verify2FALogin(code, trustDevice);
+        onSuccess?.();
         return;
       }
 
-      await verify2FALogin(code, trustDevice);
+      // Normal email + password login
+      const result = await login(email, password);
+
+      if (result.twoFactorRedirect) {
+        sessionStorage.setItem(PENDING_2FA_EMAIL_KEY, email);
+        setCode('');
+        setTwoFactorMode(true);
+        return;
+      }
+
+      if (result.emailOtpRequired) {
+        navigate('/auth/email-otp');
+        return;
+      }
+
       onSuccess?.();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed';
       if (message.match(/two-factor|2FA|TOTP/i)) {
-        sessionStorage.setItem('pending_2fa_email', email);
+        sessionStorage.setItem(PENDING_2FA_EMAIL_KEY, email);
+        setCode('');
         setTwoFactorMode(true);
       } else {
-        // Always present a generic error to avoid leaking authentication details.
-        // The concrete error is still visible in logs for diagnostics.
         // eslint-disable-next-line no-console
         console.error(err);
-        setError(t('login.form.errorInvalid'));
+        setError(twoFactorMode || passwordlessOtpSent ? message : t('login.form.errorInvalid'));
         setCode('');
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const isVerifyMode = twoFactorMode || passwordlessOtpSent;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -82,32 +116,34 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={twoFactorMode}
+          required={!isVerifyMode}
+          disabled={isVerifyMode}
           className="w-full px-3 py-2 rounded-lg border border-border dark:border-white/20 bg-surface/5 dark:bg-white/10 text-textPrimary dark:text-white placeholder:text-textPrimary/40 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-50"
           placeholder={t('login.form.emailPlaceholder')}
         />
       </div>
 
-      {/* Password */}
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-textPrimary/80 dark:text-white/80 mb-1">
-          {t('login.form.passwordLabel')}
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-          disabled={twoFactorMode}
-          className="w-full px-3 py-2 rounded-lg border border-border dark:border-white/20 bg-surface/5 dark:bg-white/10 text-textPrimary dark:text-white placeholder:text-textPrimary/40 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-50"
-          placeholder="••••••••"
-        />
-      </div>
+      {/* Password — hidden once passwordless OTP was sent */}
+      {!passwordlessOtpSent && (
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-textPrimary/80 dark:text-white/80 mb-1">
+            {t('login.form.passwordLabel')}
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required={!twoFactorMode}
+            minLength={8}
+            disabled={twoFactorMode}
+            className="w-full px-3 py-2 rounded-lg border border-border dark:border-white/20 bg-surface/5 dark:bg-white/10 text-textPrimary dark:text-white placeholder:text-textPrimary/40 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-50"
+            placeholder="••••••••"
+          />
+        </div>
+      )}
 
-      {/* 2FA section — always visible */}
+      {/* 2FA / code section — always visible */}
       <div className="pt-1 space-y-2">
         <div className="flex items-center gap-2 text-[10px] font-semibold tracking-widest text-textPrimary/40 dark:text-white/40 uppercase">
           <span className="flex-1 h-px bg-border dark:bg-white/20" />
@@ -132,34 +168,63 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
         </div>
 
         <div className="space-y-1 text-xs text-textPrimary/50 dark:text-white/50">
-          <div className="flex items-center gap-2">
-            <span>📱</span>
-            <span>{t('login.form.phoneTip')}</span>
-          </div>
+          {!passwordlessOtpSent && (
+            <div className="flex items-center gap-2">
+              <span>📱</span>
+              <span>{t('login.form.phoneTip')}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <span>✉️</span>
-            <span>
-              {t('login.form.emailTip')}{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/auth/2fa-challenge')}
-                className="underline text-textPrimary/70 dark:text-white/70 hover:text-textPrimary dark:hover:text-white transition-colors"
-              >
-                {t('login.form.emailTipLink')}
-              </button>
-            </span>
+            {passwordlessOtpSent ? (
+              <span className="text-green-600 dark:text-green-400">
+                {t('login.form.emailOtpSent')}{' '}
+                <button
+                  type="button"
+                  disabled={otpSending}
+                  onClick={handleRequestEmailOtp}
+                  className="underline hover:text-green-700 dark:hover:text-green-300 disabled:opacity-50"
+                >
+                  {otpSending ? t('login.form.emailTipSending') : t('login.form.passwordlessRetry')}
+                </button>
+              </span>
+            ) : (
+              <span>
+                {t('login.form.emailTip')}{' '}
+                <button
+                  type="button"
+                  disabled={otpSending}
+                  onClick={handleRequestEmailOtp}
+                  className="underline text-textPrimary/70 dark:text-white/70 hover:text-textPrimary dark:hover:text-white transition-colors disabled:opacity-40"
+                >
+                  {otpSending ? t('login.form.emailTipSending') : t('login.form.emailTipLink')}
+                </button>
+              </span>
+            )}
           </div>
         </div>
 
-        <label className="inline-flex items-center gap-2 text-xs text-textPrimary/50 dark:text-white/50 cursor-pointer">
-          <input
-            type="checkbox"
-            className="h-3.5 w-3.5 rounded border-border dark:border-white/20 text-secondary focus:ring-secondary bg-surface/5 dark:bg-white/5"
-            checked={trustDevice}
-            onChange={(e) => setTrustDevice(e.target.checked)}
-          />
-          <span>{t('login.form.trustDevice')}</span>
-        </label>
+        {!passwordlessOtpSent && (
+          <label className="inline-flex items-center gap-2 text-xs text-textPrimary/50 dark:text-white/50 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 rounded border-border dark:border-white/20 text-secondary focus:ring-secondary bg-surface/5 dark:bg-white/5"
+              checked={trustDevice}
+              onChange={(e) => setTrustDevice(e.target.checked)}
+            />
+            <span>{t('login.form.trustDevice')}</span>
+          </label>
+        )}
+
+        {passwordlessOtpSent && (
+          <button
+            type="button"
+            onClick={() => { setPasswordlessOtpSent(false); setCode(''); setError(''); }}
+            className="text-xs text-textPrimary/50 dark:text-white/50 hover:text-textPrimary dark:hover:text-white transition-colors"
+          >
+            ← {t('login.form.passwordlessBack')}
+          </button>
+        )}
       </div>
 
       {/* Error */}
@@ -175,7 +240,7 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
       >
         {loading
           ? t('login.form.submitLoading')
-          : twoFactorMode
+          : isVerifyMode
             ? t('login.form.submitVerify')
             : t('login.form.submitLogin')}
       </button>

@@ -2,8 +2,10 @@ import { betterAuth } from 'better-auth';
 import { createAuthMiddleware } from 'better-auth/api';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { twoFactor } from 'better-auth/plugins';
+import { emailOTP } from 'better-auth/plugins/email-otp';
 import prisma from './prisma';
 import { createAuditLog } from '../middleware/auditLog';
+import { sendOtp } from './emailService';
 
 const requiredEnvVars = ['BETTER_AUTH_SECRET', 'JWT_SECRET', 'DATABASE_URL'];
 for (const v of requiredEnvVars) {
@@ -44,7 +46,14 @@ export const auth = betterAuth({
       totpOptions: {
         period: 30
       }
-    })
+    }),
+    emailOTP({
+      expiresIn: 600, // 10 minutes
+      disableSignUp: true, // only existing accounts can use passwordless login
+      sendVerificationOTP: async ({ email, otp }) => {
+        await sendOtp(email, otp, 10);
+      },
+    }),
   ],
   hooks: {
     // Single after-hook function that runs after every auth endpoint.

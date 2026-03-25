@@ -338,19 +338,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   /**
    * Verifies a TOTP code during the 2FA login challenge.
+   * Uses a direct fetch with credentials so the two-factor cookie is always sent.
    * Uses flushSync so user state is committed before the caller calls navigate().
    */
   const verify2FALogin = async (code: string, trustDevice = false): Promise<void> => {
-    const response = await authClient.twoFactor.verifyTotp({ code, trustDevice });
-    if (response.error) throw new Error(response.error.message || 'Invalid verification code');
-    if (response.data?.user) {
-      flushSync(() => {
-        setUser(response.data!.user as User);
-      });
-    } else {
-      // Fallback: server didn't return user in response body — fetch session with flushSync.
-      await checkSession(true);
+    const res = await fetch('/api/auth/two-factor/verify-totp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, trustDevice }),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const data = await safeJson<{ message?: string; error?: string }>(res);
+      throw new Error(data?.message || data?.error || 'Invalid verification code');
     }
+    // Session cookie is now set; sync auth state (includes JWT fetch if needed).
+    await checkSession(true);
+  };
+
+  const sendLoginOtp = async (email: string): Promise<void> => {
+    const res = await fetch('/api/auth/email-otp/send-verification-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, type: 'sign-in' }),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const data = await safeJson<{ message?: string; error?: string }>(res);
+      throw new Error(data?.message || data?.error || 'Failed to send login code');
+    }
+  };
+
+  const signInWithEmailOtp = async (email: string, otp: string): Promise<void> => {
+    const res = await fetch('/api/auth/sign-in/email-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp }),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const data = await safeJson<{ message?: string; error?: string }>(res);
+      throw new Error(data?.message || data?.error || 'Invalid or expired code');
+    }
+    // Session cookie is now set; sync auth state (includes JWT fetch if needed).
+    await checkSession(true);
   };
 
   const getTotpUri = async (password: string): Promise<string> => {
@@ -377,6 +408,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       getTotpUri,
       fetchJwtToken,
       verifyEmailOtp,
+      sendLoginOtp,
+      signInWithEmailOtp,
     }}>
       {children}
     </AuthContext.Provider>
