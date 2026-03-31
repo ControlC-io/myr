@@ -26,7 +26,14 @@ const ServicesPage = () => {
   const rows: ServiceItem[] = data ?? [];
 
   const filteredRows = useMemo(() => {
-    return rows.filter((item) => {
+    const normalized = rows.filter((item) => {
+      // Some upstream responses include an "empty" placeholder row.
+      // Hide rows that have no meaningful content to avoid showing "1" with an empty table.
+      const hasMeaningfulValue = [item.name, item.type, item.status, item.date_start, item.date_end].some(
+        (v) => typeof v === "string" && v.trim().length > 0
+      );
+      if (!hasMeaningfulValue) return false;
+
       const matchesSearch =
         search === "" ||
         (item.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -38,6 +45,7 @@ const ServicesPage = () => {
 
       return matchesSearch && matchesStatus;
     });
+    return normalized;
   }, [rows, search, status]);
 
   const statusOptions = useMemo(() => {
@@ -73,7 +81,7 @@ const ServicesPage = () => {
           statusOptions={statusOptions}
           isRefetching={isRefetching}
           onRefetch={refetch}
-          disabled={!!orgError}
+          disabled={false}
         />
 
         <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">

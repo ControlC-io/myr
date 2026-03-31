@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDecompte, type DocItem } from "../features/billing/useDecompte";
 import { useOrg } from "../hooks/useOrg";
@@ -127,7 +127,7 @@ const InvoicesPage = () => {
           onDateToChange={setDateTo}
           isRefetching={isRefetching}
           onRefetch={refetch}
-          disabled={!!orgError}
+          disabled={false}
           extraRight={
             <div className="text-xs text-textSecondary dark:text-textSecondary-dark">
               {t("billing.summary.totalOutstanding", "Total outstanding")}:{" "}
@@ -138,19 +138,13 @@ const InvoicesPage = () => {
           }
         />
 
-        {orgError && (
-          <div className="alert-error">
-            <p>{orgError}</p>
-          </div>
-        )}
-
-        {!orgError && isLoading && (
+        {isLoading && (
           <div className="py-10 text-center text-sec text-sm">
             {t("placeholders.loading")}
           </div>
         )}
 
-        {!orgError && isError && (
+        {isError && (
           <div className="alert-error space-y-2">
             <p>{t("errors.billingLoad", "There was a problem loading your invoices")}</p>
             <p className="text-xs opacity-80 text-sec">
@@ -166,13 +160,13 @@ const InvoicesPage = () => {
           </div>
         )}
 
-        {!orgError && !isLoading && !isError && filteredRows.length === 0 && (
+        {!isLoading && !isError && filteredRows.length === 0 && (
           <div className="py-10 text-center text-sec text-sm">
             {t("pages.billing.empty", "You do not have any invoices matching your criteria")}
           </div>
         )}
 
-        {!orgError && !isLoading && !isError && filteredRows.length > 0 && (
+        {!isLoading && !isError && filteredRows.length > 0 && (
           <>
             <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">

@@ -73,7 +73,7 @@ const KycPage = () => {
           statusOptions={statusOptions}
           isRefetching={isRefetching}
           onRefetch={refetch}
-          disabled={!!orgError}
+          disabled={false}
         />
 
         <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
