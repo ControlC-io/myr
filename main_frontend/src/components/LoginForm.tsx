@@ -14,7 +14,6 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [trustDevice, setTrustDevice] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
@@ -64,7 +63,7 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
       // 2FA TOTP path: user already logged in with password, needs 2FA code
       if (twoFactorMode) {
         if (code.trim().length !== 6) { setError(t('login.form.errorCode')); return; }
-        await verify2FALogin(code, trustDevice);
+        await verify2FALogin(code, false);
         onSuccess?.();
         return;
       }
@@ -203,18 +202,6 @@ const LoginForm = ({ onSuccess, onForgotPassword }: LoginFormProps) => {
             )}
           </div>
         </div>
-
-        {!passwordlessOtpSent && (
-          <label className="inline-flex items-center gap-2 text-xs text-textPrimary/50 dark:text-white/50 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-3.5 w-3.5 rounded border-border dark:border-white/20 text-secondary focus:ring-secondary bg-surface/5 dark:bg-white/5"
-              checked={trustDevice}
-              onChange={(e) => setTrustDevice(e.target.checked)}
-            />
-            <span>{t('login.form.trustDevice')}</span>
-          </label>
-        )}
 
         {passwordlessOtpSent && (
           <button

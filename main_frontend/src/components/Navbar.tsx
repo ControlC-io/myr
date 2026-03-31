@@ -58,6 +58,10 @@ const Navbar = () => {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
@@ -79,13 +83,13 @@ const Navbar = () => {
   return (
     <header className="navbar font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-14 gap-2">
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-md text-textSecondary dark:text-textSecondary-dark hover:bg-primary/10 dark:hover:bg-white/10"
+              className="lg:hidden p-2 rounded-md text-textSecondary dark:text-textSecondary-dark hover:bg-primary/10 dark:hover:bg-white/10"
               aria-label="Menu"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +102,7 @@ const Navbar = () => {
             </button>
 
             {/* Brand */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center gap-2 sm:gap-6 min-w-0">
               <Link to="/dashboard" className="flex items-center space-x-2">
                 <span className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shadow-sm overflow-hidden">
                   <img
@@ -107,13 +111,14 @@ const Navbar = () => {
                     className="w-7 h-7 object-contain"
                   />
                 </span>
-                <span className="text-base font-bold tracking-tight text-textPrimary dark:text-textPrimary-dark">
-                  MyR<span className="text-secondary"> Panel</span>
+                <span className="text-base font-bold tracking-tight text-textPrimary dark:text-textPrimary-dark truncate max-w-[40vw] sm:max-w-none">
+                  MyR
+                  <span className="text-secondary hidden sm:inline"> Panel</span>
                 </span>
               </Link>
 
               {/* Desktop nav */}
-              <nav className="hidden md:flex items-center space-x-1 text-sm font-medium">
+              <nav className="hidden lg:flex items-center space-x-1 text-sm font-medium">
                 {primaryNavItems.map((item) => (
                   <div key={item.label} className="relative group">
                     {item.submenu ? (
@@ -171,11 +176,14 @@ const Navbar = () => {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <LanguagePicker />
-              {/* Theme toggle only in header on desktop; on mobile it lives in the sidebar */}
-              <div className="hidden md:block">
+              {/* On medium widths, these live in the sidebar to avoid crowding */}
+              <div className="hidden lg:block">
+                <LanguagePicker />
+              </div>
+              {/* Theme toggle only in header on large; on smaller widths it lives in the sidebar */}
+              <div className="hidden lg:block">
                 <ThemeToggle />
               </div>
             </div>
@@ -294,7 +302,7 @@ const Navbar = () => {
 
       {/* Mobile sidebar (hamburger menu) */}
       {mobileOpen && (
-        <div className="fixed inset-x-0 top-16 bottom-0 z-40 md:hidden">
+        <div className="fixed inset-x-0 top-14 bottom-0 z-40 lg:hidden">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/40"
@@ -302,20 +310,27 @@ const Navbar = () => {
           />
 
           {/* Sidebar panel */}
-          <div className="relative h-full w-72 bg-surface dark:bg-surface-dark border-r border-border dark:border-border-dark shadow-lg flex flex-col">
-            <div className="px-4 py-3 flex items-center justify-between border-b border-border dark:border-border-dark">
-              <span className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
-                {t("nav.menu", "Menu")}
-              </span>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="p-1 rounded-md text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark"
-                aria-label="Close menu"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+          <div className="relative h-full w-72 max-w-[85vw] bg-surface dark:bg-surface-dark border-r border-border dark:border-border-dark shadow-lg flex flex-col">
+            <div className="px-4 py-3 border-b border-border dark:border-border-dark space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
+                  {t("nav.menu", "Menu")}
+                </span>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="p-1 rounded-md text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark"
+                  aria-label="Close menu"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <LanguagePicker />
+                <ThemeToggle />
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -367,11 +382,6 @@ const Navbar = () => {
                     )}
                   </div>
                 ))}
-              </div>
-
-              {/* Theme selector (only here on mobile; language lives in header) */}
-              <div className="pt-4 border-t border-border/70 dark:border-border-dark/70 flex items-center justify-end">
-                <ThemeToggle />
               </div>
 
               {/* Auth actions */}

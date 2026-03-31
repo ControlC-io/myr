@@ -269,13 +269,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (!res.ok) {
-      const msg = await getAuthErrorMessage(res, (status) =>
-        status === 502 || status === 503
+      const body = await safeJson<{ message?: string; error?: string; code?: string }>(res);
+      if (body?.code === 'USER_NOT_REGISTERED') {
+        throw new Error('USER_NOT_REGISTERED');
+      }
+      const msg =
+        body?.message ||
+        body?.error ||
+        (res.status === 502 || res.status === 503
           ? 'Registration failed (backend unreachable—check if the API is running)'
-          : status === 403
+          : res.status === 403
             ? 'Registration failed (forbidden—check allowed origins)'
-            : `Registration failed (${status})`
-      );
+            : `Registration failed (${res.status})`);
       throw new Error(msg);
     }
 

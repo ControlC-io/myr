@@ -38,7 +38,11 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
     } catch (err: unknown) {
       // eslint-disable-next-line no-console
       console.error(err);
-      setError(t('register.form.errorFailed'));
+      if (err instanceof Error && err.message === 'USER_NOT_REGISTERED') {
+        setError(t('register.form.errorNotRegistered'));
+      } else {
+        setError(t('register.form.errorFailed'));
+      }
     } finally {
       setLoading(false);
     }

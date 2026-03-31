@@ -97,6 +97,7 @@
       "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
       "errorMismatch": "Les mots de passe ne correspondent pas",
       "errorWeak": "Le mot de passe doit contenir au moins 8 caractères",
+      "errorNotRegistered": "Votre adresse email n'est pas enregistrée dans notre système.",
       "errorFailed": "Échec de l'inscription. Veuillez réessayer.",
       "submit": "CRÉER LE COMPTE",
       "submitLoading": "CRÉATION..."

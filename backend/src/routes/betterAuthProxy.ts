@@ -1,5 +1,7 @@
 import express, { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { auth } from '../lib/auth';
+import { proxyGraphQL } from '../services/proxyService';
+import { buildContactSupplierQuery } from '../services/decompteQueries';
 
 const router = express.Router();
 
@@ -30,6 +32,37 @@ function clearSessionCookieHeaders(): string[] {
  */
 
 export async function betterAuthProxyHandler(req: ExpressRequest, res: ExpressResponse): Promise<void> {
+  // Pre-registration check: verify email exists in the supplier system before
+  // forwarding to Better Auth, so unrecognised emails are blocked server-side.
+  const isSignUp = req.method === 'POST' && req.originalUrl.includes('/sign-up/email');
+  if (isSignUp) {
+    const email: string | undefined = req.body?.email;
+    if (!email) {
+      res.status(400).json({ error: 'Email is required', message: 'Email is required' });
+      return;
+    }
+    try {
+      const query = buildContactSupplierQuery(email);
+      const result = await proxyGraphQL(query) as { data?: { contactSupplier?: { total: number } } };
+      const total = result?.data?.contactSupplier?.total ?? 0;
+      if (total === 0) {
+        res.status(403).json({
+          error: 'USER_NOT_REGISTERED',
+          message: 'User not registered in our server',
+          code: 'USER_NOT_REGISTERED',
+        });
+        return;
+      }
+    } catch (checkErr) {
+      console.error('Pre-registration supplier check failed:', (checkErr as Error).message);
+      res.status(503).json({
+        error: 'Registration check unavailable',
+        message: 'Registration check unavailable. Please try again later.',
+      });
+      return;
+    }
+  }
+
   try {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';

@@ -97,6 +97,7 @@
       "confirmPasswordPlaceholder": "Confirm your password",
       "errorMismatch": "Passwords do not match",
       "errorWeak": "Password must be at least 8 characters",
+      "errorNotRegistered": "Your email address is not registered in our system.",
       "errorFailed": "Registration failed. Please try again.",
       "submit": "CREATE ACCOUNT",
       "submitLoading": "CREATING..."

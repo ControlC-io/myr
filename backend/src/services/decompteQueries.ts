@@ -78,6 +78,19 @@ export function buildInterventionsQuery(params: InterventionsQueryParams): strin
   return `{ ticalIntervention(date_begin: "${sanitized}", ticket_client_id: ${id}) { total } }`;
 }
 
+/**
+ * Builds a GraphQL query to check if an email is registered as a supplier contact.
+ * Used during registration to verify the user exists in the external system.
+ * Email is sanitized to prevent GraphQL injection.
+ */
+export function buildContactSupplierQuery(email: string): string {
+  const sanitized = email.replace(/[^a-zA-Z0-9.@+\-_]/g, '');
+  if (!sanitized.includes('@')) {
+    throw Object.assign(new Error('Invalid email address'), { statusCode: 400 });
+  }
+  return `query { contactSupplier(contactEmail: "${sanitized}", is_deleted: false) { total } }`;
+}
+
 export function buildTicketsQuery(params: TicketsQueryParams): string {
   const id = validateSupplierId(params.supplierId);
   const limit = Math.max(1, Math.floor(params.paginLimit));
