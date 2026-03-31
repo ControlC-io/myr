@@ -5,12 +5,14 @@ import { useAuth } from "@shared/auth";
 import { useSupplier } from "../context/SupplierContext";
 import LanguagePicker from "./LanguagePicker";
 import ThemeToggle from "./ThemeToggle";
+import { usePortalConfig } from "../context/PortalConfigContext";
 import logoIcon from "../assets/icons/R-picto-seul-blanc.png";
 
 type SubNavItem = {
   label: string;
   to: string;
   requiredRoles?: string[];
+  portalServiceKey?: string;
 };
 
 type PrimaryNavItem = {
@@ -18,6 +20,7 @@ type PrimaryNavItem = {
   to?: string;
   submenu?: SubNavItem[];
   requiredRoles?: string[];
+  portalServiceKey?: string;
 };
 
 const primaryNavItems: PrimaryNavItem[] = [
@@ -35,7 +38,7 @@ const primaryNavItems: PrimaryNavItem[] = [
       { label: "Payment information", to: "/payment-information" },
       { label: "Customer information", to: "/information-client" },
       { label: "SEPA Mandate", to: "/sepa" },
-      { label: "BCP room reservations", to: "/reservation-salles-bcp" },
+      { label: "BCP room reservations", to: "/reservation-salles-bcp", portalServiceKey: "BCP" },
       { label: "Your suggestions", to: "/suggestions" },
       { label: "Data Deletion", to: "/data-deletion" },
     ],
@@ -47,22 +50,38 @@ const primaryNavItems: PrimaryNavItem[] = [
       { label: "Orders", to: "/commandes" },
     ],
   },
-  { label: "Contracts", to: "/services" },
+  { label: "Contracts", to: "/services", portalServiceKey: "Services" },
   { label: "Security", to: "/securite" },
   { label: "Resources", to: "/ressources/external-services" },
 ];
 
 const Navbar = () => {
   const location = useLocation();
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const { user, logout, loading } = useAuth();
   const { companies, selectedSupplierId, setSelectedSupplierId, currentRoles } = useSupplier();
+  const { getServiceConfig, getLocalizedInactiveMessage } = usePortalConfig();
+  const [inactiveNotice, setInactiveNotice] = useState<string | null>(null);
+  const inactiveNoticeTimerRef = useRef<number | null>(null);
 
-  // Filter nav items based on the current company's roles.
-  // An item with no requiredRoles (or empty array) is visible to all authenticated users.
-  const isVisible = (item: { requiredRoles?: string[] }): boolean => {
-    if (!item.requiredRoles || item.requiredRoles.length === 0) return true;
-    return item.requiredRoles.some((role) => currentRoles.includes(role));
+  // Filter nav items based on the current company's roles and portal config.
+  const isVisible = (item: { requiredRoles?: string[]; portalServiceKey?: string }): boolean => {
+    // Role check
+    if (item.requiredRoles && item.requiredRoles.length > 0) {
+      if (!item.requiredRoles.some((role) => currentRoles.includes(role))) {
+        return false;
+      }
+    }
+
+    // Portal config check (visibility)
+    if (item.portalServiceKey) {
+      const config = getServiceConfig(item.portalServiceKey);
+      if (!config.visible) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const visibleNavItems = primaryNavItems
@@ -97,6 +116,26 @@ const Navbar = () => {
         ? "bg-secondary text-secondary-on-light dark:text-secondary-on-dark"
         : "text-textSecondary dark:text-textSecondary-dark hover:text-textPrimary dark:hover:text-textPrimary-dark hover:bg-primary/10 dark:hover:bg-white/10"
     }`;
+
+  const showInactiveNotice = (message: string) => {
+    if (!message) return;
+    setInactiveNotice(message);
+    if (inactiveNoticeTimerRef.current) {
+      window.clearTimeout(inactiveNoticeTimerRef.current);
+    }
+    inactiveNoticeTimerRef.current = window.setTimeout(() => {
+      setInactiveNotice(null);
+      inactiveNoticeTimerRef.current = null;
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (inactiveNoticeTimerRef.current) {
+        window.clearTimeout(inactiveNoticeTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <header className="navbar font-sans">
@@ -165,28 +204,58 @@ const Navbar = () => {
                           <div className="relative">
                             <div className="absolute left-1/2 -top-1 w-3 h-3 bg-surface dark:bg-surface-dark border-l border-t border-border dark:border-border-dark rounded-tl-sm rotate-45 -translate-x-1/2" />
                             <div className="relative bg-surface dark:bg-surface-dark text-textPrimary dark:text-textPrimary-dark border border-border dark:border-border-dark rounded-lg shadow-lg py-2 min-w-[220px]">
-                              {item.submenu.map((subItem) => (
-                                <Link
-                                  key={subItem.label}
-                                  to={subItem.to}
-                                  className="flex items-center gap-3 px-4 py-2 text-sm text-textPrimary dark:text-textPrimary-dark hover:bg-background dark:hover:bg-background-dark transition-colors"
-                                >
-                                  <span className="w-2.5 h-2.5 bg-secondary rounded-sm rotate-45" />
-                                  <span>{subItem.label}</span>
-                                </Link>
-                              ))}
+                              {item.submenu.map((subItem) => {
+                                const config = subItem.portalServiceKey ? getServiceConfig(subItem.portalServiceKey) : { active: true };
+                                const inactiveMessage = subItem.portalServiceKey ? getLocalizedInactiveMessage(subItem.portalServiceKey, i18n.language) : '';
+                                
+                                return config.active ? (
+                                  <Link
+                                    key={subItem.label}
+                                    to={subItem.to}
+                                    className="flex items-center gap-3 px-4 py-2 text-sm text-textPrimary dark:text-textPrimary-dark hover:bg-background dark:hover:bg-background-dark transition-colors"
+                                  >
+                                    <span className="w-2.5 h-2.5 bg-secondary rounded-sm rotate-45" />
+                                    <span>{subItem.label}</span>
+                                  </Link>
+                                ) : (
+                                  <button
+                                    key={subItem.label}
+                                    type="button"
+                                    onClick={() => showInactiveNotice(inactiveMessage)}
+                                    title={inactiveMessage}
+                                    className="flex w-full items-center gap-3 px-4 py-2 text-sm text-textSecondary dark:text-textSecondary-dark opacity-60 cursor-not-allowed hover:bg-background dark:hover:bg-background-dark transition-colors"
+                                  >
+                                    <span className="w-2.5 h-2.5 bg-border rounded-sm rotate-45" />
+                                    <span>{subItem.label}</span>
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
                       </>
-                    ) : (
-                      <Link
-                        to={item.to ?? "#"}
-                        className={navLinkClass(item.to ?? "#")}
-                      >
-                        {item.label}
-                      </Link>
-                    )}
+                    ) : (() => {
+                      const config = item.portalServiceKey ? getServiceConfig(item.portalServiceKey) : { active: true };
+                      const inactiveMessage = item.portalServiceKey ? getLocalizedInactiveMessage(item.portalServiceKey, i18n.language) : '';
+
+                      return config.active ? (
+                        <Link
+                          to={item.to ?? "#"}
+                          className={navLinkClass(item.to ?? "#")}
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => showInactiveNotice(inactiveMessage)}
+                          title={inactiveMessage}
+                          className="px-3 py-2 rounded-md text-sm font-medium text-textSecondary dark:text-textSecondary-dark opacity-60 cursor-not-allowed hover:bg-secondary/10 dark:hover:bg-white/10 transition-colors"
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })()}
                   </div>
                 ))}
               </nav>
@@ -406,28 +475,64 @@ const Navbar = () => {
                     </div>
                     {item.submenu && (
                       <div className="pl-6 space-y-0.5">
-                        {item.submenu.map((subItem) => (
-                          <Link
-                            key={subItem.label}
-                            to={subItem.to}
-                            onClick={() => setMobileOpen(false)}
-                            className="flex items-center gap-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark"
-                          >
-                            <span className="w-2.5 h-2.5 bg-secondary rounded-sm rotate-45" />
-                            <span>{subItem.label}</span>
-                          </Link>
-                        ))}
+                        {item.submenu.map((subItem) => {
+                          const config = subItem.portalServiceKey ? getServiceConfig(subItem.portalServiceKey) : { active: true };
+                          const inactiveMessage = subItem.portalServiceKey ? getLocalizedInactiveMessage(subItem.portalServiceKey, i18n.language) : '';
+
+                          return config.active ? (
+                            <Link
+                              key={subItem.label}
+                              to={subItem.to}
+                              onClick={() => setMobileOpen(false)}
+                              className="flex items-center gap-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark"
+                            >
+                              <span className="w-2.5 h-2.5 bg-secondary rounded-sm rotate-45" />
+                              <span>{subItem.label}</span>
+                            </Link>
+                          ) : (
+                            <button
+                              key={subItem.label}
+                              type="button"
+                              onClick={() => {
+                                setMobileOpen(false);
+                                showInactiveNotice(inactiveMessage);
+                              }}
+                              title={inactiveMessage}
+                              className="flex w-full items-center gap-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark opacity-60 cursor-not-allowed hover:bg-background dark:hover:bg-background-dark"
+                            >
+                              <span className="w-2.5 h-2.5 bg-border rounded-sm rotate-45" />
+                              <span>{subItem.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
-                    {!item.submenu && item.to && (
-                      <Link
-                        to={item.to}
-                        onClick={() => setMobileOpen(false)}
-                        className="ml-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark inline-flex"
-                      >
-                        {item.label}
-                      </Link>
-                    )}
+                    {!item.submenu && item.to && (() => {
+                      const config = item.portalServiceKey ? getServiceConfig(item.portalServiceKey) : { active: true };
+                      const inactiveMessage = item.portalServiceKey ? getLocalizedInactiveMessage(item.portalServiceKey, i18n.language) : '';
+
+                      return config.active ? (
+                        <Link
+                          to={item.to}
+                          onClick={() => setMobileOpen(false)}
+                          className="ml-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark inline-flex"
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileOpen(false);
+                            showInactiveNotice(inactiveMessage);
+                          }}
+                          title={inactiveMessage}
+                          className="ml-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark opacity-60 cursor-not-allowed hover:bg-background dark:hover:bg-background-dark inline-flex"
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -452,6 +557,14 @@ const Navbar = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {inactiveNotice && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] px-4">
+          <div className="max-w-[92vw] sm:max-w-lg bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-lg rounded-lg px-4 py-3 text-sm text-textPrimary dark:text-textPrimary-dark">
+            {inactiveNotice}
           </div>
         </div>
       )}

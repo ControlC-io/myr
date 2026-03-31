@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { usePortalConfig } from "../context/PortalConfigContext";
+import { useEffect, useRef, useState } from "react";
 
 type DashboardLinkType = "internal" | "external";
 
@@ -9,6 +11,7 @@ interface DashboardLink {
   to: string;
   badge?: string;
   badgeVariant?: "count" | "new";
+  portalServiceKey?: string;
 }
 
 interface Section {
@@ -150,8 +153,8 @@ const sections: Section[] = [
       { id: "facturation", type: "internal", to: "/facturation" },
       { id: "sepa", type: "internal", to: "/sepa" },
       { id: "information-client", type: "internal", to: "/information-client" },
-      { id: "kyc", type: "internal", to: "/kyc" },
-      { id: "reservation-salles", type: "internal", to: "/reservation-salles-bcp" },
+      { id: "kyc", type: "internal", to: "/kyc", portalServiceKey: "KYC" },
+      { id: "reservation-salles", type: "internal", to: "/reservation-salles-bcp", portalServiceKey: "BCP" },
       { id: "suggestions", type: "internal", to: "/suggestions" },
     ],
   },
@@ -160,7 +163,8 @@ const sections: Section[] = [
     links: [
       { id: "offres", type: "internal", to: "/offer", badge: "New", badgeVariant: "new" },
       { id: "commandes", type: "internal", to: "/commandes" },
-      { id: "services", type: "internal", to: "/services" },
+      { id: "services", type: "internal", to: "/services", portalServiceKey: "Services" },
+      { id: "commande-rapide", type: "internal", to: "/commande-rapide", portalServiceKey: "EasyOrdering" },
     ],
   },
 ];
@@ -176,15 +180,22 @@ interface CardProps {
 
 const DashboardCard = ({ link, label, onClick, glassy = false }: CardProps) => {
   const Icon = iconMap[link.id] ?? DocumentIcon;
+  const { getServiceConfig, getLocalizedInactiveMessage } = usePortalConfig();
+  const { i18n } = useTranslation("common");
+  
+  const config = link.portalServiceKey ? getServiceConfig(link.portalServiceKey) : { active: true };
+  const inactiveMessage = link.portalServiceKey ? getLocalizedInactiveMessage(link.portalServiceKey, i18n.language) : "";
 
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={!config.active}
+      title={!config.active ? inactiveMessage : undefined}
       className={`relative group flex flex-col items-center justify-center gap-2 p-3 card--square-tl
         hover:rounded-tl-xl hover:rounded-br-none
         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-secondary/60
-        w-full ${
+        w-full ${!config.active ? 'opacity-60 cursor-not-allowed' : ''} ${
         glassy
           ? 'bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/25 hover:border-white/35 hover:shadow-lg hover:shadow-black/20'
           : 'bg-white dark:bg-surface-dark border border-border dark:border-white/10 hover:bg-secondary/5 dark:hover:bg-secondary/10 hover:border-secondary/50 dark:hover:border-white/25 hover:shadow-md dark:hover:shadow-black/30'
@@ -229,10 +240,41 @@ interface DashboardQuickLinksProps {
 }
 
 export const DashboardQuickLinks = ({ glassy = false }: DashboardQuickLinksProps) => {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const navigate = useNavigate();
+  const { getServiceConfig, getLocalizedInactiveMessage } = usePortalConfig();
+  const [inactiveNotice, setInactiveNotice] = useState<string | null>(null);
+  const inactiveNoticeTimerRef = useRef<number | null>(null);
+
+  const showInactiveNotice = (message: string) => {
+    if (!message) return;
+    setInactiveNotice(message);
+    if (inactiveNoticeTimerRef.current) {
+      window.clearTimeout(inactiveNoticeTimerRef.current);
+    }
+    inactiveNoticeTimerRef.current = window.setTimeout(() => {
+      setInactiveNotice(null);
+      inactiveNoticeTimerRef.current = null;
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (inactiveNoticeTimerRef.current) {
+        window.clearTimeout(inactiveNoticeTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleClick = (link: DashboardLink) => {
+    if (link.portalServiceKey) {
+      const config = getServiceConfig(link.portalServiceKey);
+      if (!config.active) {
+        showInactiveNotice(getLocalizedInactiveMessage(link.portalServiceKey, i18n.language));
+        return;
+      }
+    }
+
     if (link.type === "external") {
       window.open(link.to, "_blank", "noopener,noreferrer");
     } else {
@@ -242,32 +284,52 @@ export const DashboardQuickLinks = ({ glassy = false }: DashboardQuickLinksProps
 
   return (
     <div className="space-y-5">
-      {sections.map((section) => (
-        <div key={section.labelKey}>
-          {/* Section header */}
-          <div className="flex items-center gap-3 mb-2">
-            <span className={`text-[11px] font-bold tracking-[0.18em] uppercase shrink-0 ${
-              glassy ? 'text-white/50' : 'text-textSecondary dark:text-white/50'
-            }`}>
-              {t(section.labelKey)}
-            </span>
-            <div className={`flex-1 h-px ${glassy ? 'bg-white/15' : 'bg-border dark:bg-white/10'}`} />
-          </div>
+      {sections.map((section) => {
+        const visibleLinks = section.links.filter(link => {
+          if (link.portalServiceKey) {
+            const config = getServiceConfig(link.portalServiceKey);
+            return config.visible;
+          }
+          return true;
+        });
 
-          {/* Cards grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {section.links.map((link) => (
-              <DashboardCard
-                key={link.id}
-                link={link}
-                label={t(`dashboard.home.links.${link.id}`)}
-                onClick={() => handleClick(link)}
-                glassy={glassy}
-              />
-            ))}
+        if (visibleLinks.length === 0) return null;
+
+        return (
+          <div key={section.labelKey}>
+            {/* Section header */}
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`text-[11px] font-bold tracking-[0.18em] uppercase shrink-0 ${
+                glassy ? 'text-white/50' : 'text-textSecondary dark:text-white/50'
+              }`}>
+                {t(section.labelKey)}
+              </span>
+              <div className={`flex-1 h-px ${glassy ? 'bg-white/15' : 'bg-border dark:bg-white/10'}`} />
+            </div>
+
+            {/* Cards grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {visibleLinks.map((link) => (
+                <DashboardCard
+                  key={link.id}
+                  link={link}
+                  label={t(`dashboard.home.links.${link.id}`)}
+                  onClick={() => handleClick(link)}
+                  glassy={glassy}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {inactiveNotice && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] px-4">
+          <div className="max-w-[92vw] sm:max-w-lg bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-lg rounded-lg px-4 py-3 text-sm text-textPrimary dark:text-textPrimary-dark">
+            {inactiveNotice}
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 };

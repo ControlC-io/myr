@@ -33,6 +33,8 @@ import DataDeletionPage from "./pages/DataDeletionPage";
 import NoAccessPage from "./pages/NoAccessPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { SupplierProvider, useSupplier } from "./context/SupplierContext";
+import { PortalConfigProvider } from "./context/PortalConfigContext";
+import PortalServiceGuard from "./components/PortalServiceGuard";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -96,18 +98,36 @@ const AppRoutes = () => {
             element={<PaymentInformationPage />}
           />
           <Route path="/sepa" element={<SepaPage />} />
+          <Route path="/information-client" element={<InformationClient />} />
           <Route
-            path="/information-client"
-            element={<InformationClient />}
+            path="/reservation-salles-bcp"
+            element={
+              <PortalServiceGuard serviceKey="BCP">
+                <BcpRoomsPage />
+              </PortalServiceGuard>
+            }
           />
-          <Route path="/reservation-salles-bcp" element={<BcpRoomsPage />} />
           <Route path="/suggestions" element={<SuggestionsPage />} />
           <Route path="/offer" element={<OffresPage />} />
           <Route path="/offer/:offerId" element={<OfferDetailPage />} />
           <Route path="/commandes" element={<OrdersPage />} />
           <Route path="/commandes/:orderId" element={<OrderDetailPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/kyc" element={<KycPage />} />
+          <Route
+            path="/services"
+            element={
+              <PortalServiceGuard serviceKey="Services">
+                <ServicesPage />
+              </PortalServiceGuard>
+            }
+          />
+          <Route
+            path="/kyc"
+            element={
+              <PortalServiceGuard serviceKey="KYC">
+                <KycPage />
+              </PortalServiceGuard>
+            }
+          />
           <Route path="/messages" element={<MessagesPage />} />
           <Route
             path="/securite"
@@ -121,7 +141,11 @@ const AppRoutes = () => {
           />
           <Route
             path="/commande-rapide"
-            element={<PlaceholderPage titleKey="pages.quickOrder.title" />}
+            element={
+              <PortalServiceGuard serviceKey="EasyOrdering">
+                <PlaceholderPage titleKey="pages.quickOrder.title" />
+              </PortalServiceGuard>
+            }
           />
           <Route path="/auth/2fa-challenge" element={<TwoFactorChallenge />} />
           <Route path="/auth/email-otp" element={<EmailOtpChallenge />} />
@@ -143,9 +167,11 @@ const App = () => {
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <SupplierProvider>
-              <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col font-sans transition-colors duration-300">
-                <AppRoutes />
-              </div>
+              <PortalConfigProvider>
+                <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col font-sans transition-colors duration-300">
+                  <AppRoutes />
+                </div>
+              </PortalConfigProvider>
             </SupplierProvider>
           </AuthProvider>
         </BrowserRouter>

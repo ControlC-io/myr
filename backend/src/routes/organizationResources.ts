@@ -876,6 +876,67 @@ router.put(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/orgs/:orgId/portal-config
+// Proxies a request for the portal configuration (visibility/active flags).
+// Minimum role: VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/:orgId/portal-config',
+  checkOrganizationAccess(MemberRole.VIEWER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId } = req.params;
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) {
+        res.status(404).json({ error: 'Organization not found' });
+        return;
+      }
+      if (!org.externalReferenceId) {
+        res.status(403).json({ error: 'Organization has no linked supplier' });
+        return;
+      }
+
+      const customerId = validateSupplierId(org.externalReferenceId);
+
+      // The upstream API expects a POST with customer_id as query param.
+      const rawResponse = await proxyRestPost('/api/myrportal/config', {
+        customer_id: String(customerId),
+      }) as { data?: string; message?: string };
+
+      let myRConfig = null;
+      if (rawResponse.data) {
+        try {
+          const parsed = JSON.parse(rawResponse.data);
+          // The structure might be { myRConfig: { ... } } or just the config.
+          myRConfig = parsed.myRConfig || parsed;
+        } catch (e) {
+          console.error('Failed to parse myRPortal config data string:', e);
+        }
+      }
+
+      await createAuditLog(
+        'PROXY_API_CALL',
+        req.user!.userId,
+        { orgId, externalReferenceId: org.externalReferenceId, endpoint: 'portal-config' },
+        orgId
+      );
+
+      res.json({ myRConfig });
+    } catch (error: unknown) {
+      console.error('Proxy portal-config request failed:', error);
+      const proxyErr = asProxyError(error);
+      const remoteStatus = proxyErr.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
+        error: 'Proxy request failed',
+        details: proxyErr.response?.data ?? proxyErr.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/orgs/:orgId/proxy/messages
 // Proxies a REST request for portal messages scoped to this org's customer.
 // Minimum role: VIEWER
