@@ -6,6 +6,9 @@ import { useBcpBookings } from "../features/bcp/hooks";
 import type { BcpBooking } from "../features/bcp/types";
 import type { CalendarEvent } from "../components/MonthCalendar";
 import MonthCalendar from "../components/MonthCalendar";
+import Pagination from "../components/Pagination";
+
+const PAGE_SIZE = 10;
 
 type Tab = "list" | "calendar";
 
@@ -66,6 +69,7 @@ const BcpRoomsPage = () => {
   const [activeTab, setActiveTab] = useState<Tab>("list");
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgError, setOrgError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     async function fetchOrg() {
@@ -106,6 +110,11 @@ const BcpRoomsPage = () => {
   const sortedBookings = useMemo(
     () => [...bookings].sort((a, b) => a.start_datetime.localeCompare(b.start_datetime)),
     [bookings]
+  );
+
+  const pagedBookings = useMemo(
+    () => sortedBookings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sortedBookings, page]
   );
 
   const calendarEvents = useMemo<CalendarEvent[]>(() =>
@@ -204,6 +213,7 @@ const BcpRoomsPage = () => {
 
         {/* Tab content */}
         {activeTab === "list" ? (
+          <>
           <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
             {isLoading && (
               <div className="py-16 text-center text-textSecondary dark:text-textSecondary-dark text-sm">
@@ -230,7 +240,7 @@ const BcpRoomsPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/5">
-                    {sortedBookings.map((b: BcpBooking) => (
+                    {pagedBookings.map((b: BcpBooking) => (
                       <tr
                         key={b.id}
                         className="table-row"
@@ -265,6 +275,16 @@ const BcpRoomsPage = () => {
               </div>
             )}
           </div>
+          {!isError && !orgError && sortedBookings.length > 0 && (
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              totalItems={sortedBookings.length}
+              onPageChange={setPage}
+              isLoading={isLoading}
+            />
+          )}
+          </>
         ) : (
           <MonthCalendar events={calendarEvents} />
         )}
