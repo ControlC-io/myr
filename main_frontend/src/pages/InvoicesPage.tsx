@@ -1,14 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@shared/auth";
-import { getJson } from "../api/client";
 import { useDecompte, type DocItem } from "../features/billing/useDecompte";
+import { useOrg } from "../hooks/useOrg";
 import Pagination from "../components/Pagination";
 import PageHeader from "../components/PageHeader";
-
-interface OrgsResponse {
-  organizations: { id: string }[];
-}
 
 const PAGE_SIZE = 10;
 
@@ -35,58 +30,14 @@ function formatAmount(value: string | null | undefined): string {
 }
 
 const InvoicesPage = () => {
-  const { jwtToken, loading: authLoading, jwtLoading } = useAuth();
+  const orgId = useOrg();
   const { t } = useTranslation("common");
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [orgError, setOrgError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-
-  useEffect(() => {
-    async function fetchOrg() {
-      if (authLoading || jwtLoading) return;
-
-      if (!jwtToken) {
-        setOrgError("No JWT token available. Please log out and log in again.");
-        return;
-      }
-
-      try {
-        setOrgError(null);
-        const { organizations } = await getJson<OrgsResponse>("/orgs/mine", undefined, {
-          Authorization: `Bearer ${jwtToken}`,
-        });
-
-        if (organizations.length === 0) {
-          setOrgError("No organization found for the current user.");
-          return;
-        }
-
-        setOrgId(organizations[0].id);
-      } catch (err: any) {
-        const status =
-          typeof err === "object" && err && "statusCode" in err
-            ? (err as { statusCode?: number }).statusCode
-            : undefined;
-
-        if (status === 401) {
-          setOrgError("Your session is not authorized. Please sign in again.");
-        } else if (status === 403) {
-          setOrgError("Organization access denied for this account.");
-        } else if (status === 502) {
-          setOrgError("Unable to reach the external data service. Please contact your administrator.");
-        } else {
-          setOrgError(err.message || "An error occurred while fetching your organization.");
-        }
-      }
-    }
-
-    fetchOrg();
-  }, [jwtToken, authLoading, jwtLoading]);
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useDecompte(orgId);
 
@@ -146,7 +97,7 @@ const InvoicesPage = () => {
     { label: t("billing.status.closed", "Closed"), value: "closed" },
   ];
 
-  if (authLoading || jwtLoading || (orgId === null && !orgError)) {
+  if (!orgId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background dark:bg-background-dark">
         <p className="text-sec text-sm">{t("placeholders.loading")}</p>

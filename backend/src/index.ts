@@ -19,6 +19,7 @@ import rolesRouter from './routes/roles';
 import counterRouter from './routes/counter';
 import accountingRouter from './routes/accounting';
 import orgResourcesRouter from './routes/organizationResources';
+import userContextRouter from './routes/userContext';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -151,6 +152,9 @@ app.use('/api/counter', counterRouter);
 
 // ─── Accounting Routes (JWT protected, external decompte proxy) ─────────────
 app.use('/api/accounting', accountingRouter);
+
+// ─── User Context Routes (JWT protected) ─────────────────────────────────────
+app.use('/api/user', userContextRouter);
 
 // ─── Tenant-scoped Org Routes (JWT protected, org membership enforced per route) ─
 app.use('/api/orgs', orgResourcesRouter);

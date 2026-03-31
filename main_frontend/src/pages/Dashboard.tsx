@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import TwoFactorSetup from '../components/TwoFactorSetup';
 import Counter from '../components/Counter';
+import { useSupplier } from '../context/SupplierContext';
 
 const Dashboard = () => {
   const { t } = useTranslation('common');
   const { user, logout, loading, disable2FA, checkSession, jwtToken } = useAuth();
+  const { companies, selectedSupplierId, currentRoles } = useSupplier();
   const navigate = useNavigate();
   const [show2FASetup, setShow2FASetup] = useState(false);
   const [showDisable2FA, setShowDisable2FA] = useState(false);
@@ -150,6 +152,87 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+
+          {companies.length > 0 && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {companies.map((company) => {
+                const isSelected = String(company.supplier.id) === selectedSupplierId;
+                const roles = company.roles.map((r) => r.contactroles.name);
+                return (
+                  <div
+                    key={company.supplier.id}
+                    className={`card rounded-lg p-4 ${isSelected ? 'ring-1 ring-secondary' : ''}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-sm text-textPrimary dark:text-textPrimary-dark">
+                        {t('dashboard.info.companyCardTitle')} #{company.supplier.id}
+                      </h3>
+                      {isSelected && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-secondary/10 text-secondary border border-secondary/20">
+                          {t('dashboard.info.companySelected')}
+                        </span>
+                      )}
+                    </div>
+                    <dl className="space-y-1.5">
+                      <div>
+                        <dt className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
+                          {t('dashboard.info.supplierIdLabel')}
+                        </dt>
+                        <dd className="text-sm font-mono text-textPrimary dark:text-textPrimary-dark">
+                          {company.supplier.id}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark">
+                          {t('dashboard.info.contactIdLabel')}
+                        </dt>
+                        <dd className="text-sm font-mono text-textPrimary dark:text-textPrimary-dark">
+                          {company.contact.id}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-medium text-textSecondary dark:text-textSecondary-dark mb-1">
+                          {t('dashboard.info.rolesLabel')}
+                        </dt>
+                        <dd className="flex flex-wrap gap-1">
+                          {roles.length > 0 ? roles.map((role) => (
+                            <span
+                              key={role}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-tight bg-primary/10 text-textSecondary dark:bg-white/10 dark:text-white/60 border border-primary/20"
+                            >
+                              {role}
+                            </span>
+                          )) : (
+                            <span className="text-xs text-textSecondary dark:text-textSecondary-dark">—</span>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {companies.length > 0 && (
+            <div className="mt-4 card rounded-lg p-4">
+              <h3 className="font-semibold text-sm text-textPrimary dark:text-textPrimary-dark mb-2">
+                {t('dashboard.info.activeRolesLabel')}
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {currentRoles.length > 0 ? currentRoles.map((role) => (
+                  <span
+                    key={role}
+                    className="inline-flex items-center px-2.5 py-1 rounded text-xs font-bold tracking-tight bg-secondary/10 text-secondary border border-secondary/20"
+                  >
+                    {role}
+                  </span>
+                )) : (
+                  <span className="text-xs text-textSecondary dark:text-textSecondary-dark">—</span>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mt-4">
             <Counter />

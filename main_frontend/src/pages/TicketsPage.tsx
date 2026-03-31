@@ -3,18 +3,15 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { useAuth } from "@shared/auth";
-import { getJson, postJson } from "../api/client";
+import { postJson } from "../api/client";
 import { useTickets } from "../features/tickets/hooks";
 import { createTicket } from "../features/tickets/api";
 import type { Ticket } from "../features/tickets/types";
 import Pagination from "../components/Pagination";
 import PageHeader from "../components/PageHeader";
+import { useOrg } from "../hooks/useOrg";
 
 const PAGE_SIZE = 10;
-
-interface OrgsResponse {
-  organizations: { id: string }[];
-}
 
 const statusColors: Record<string, string> = {
   open:        "bg-blue-500/10  text-blue-600  dark:bg-blue-500/20  dark:text-blue-300  border border-blue-500/20  dark:border-blue-400/30",
@@ -196,12 +193,11 @@ interface SupplierProxyResponse {
 }
 
 const TicketsPage = () => {
-  const { jwtToken, user, loading: authLoading, jwtLoading } = useAuth();
+  const { jwtToken, user } = useAuth();
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const orgId = useOrg();
   const [page, setPage] = useState(1);
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [orgError, setOrgError] = useState<string | null>(null);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [ticalContactId, setTicalContactId] = useState<number | null>(null);
 
@@ -213,63 +209,27 @@ const TicketsPage = () => {
   const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
-    async function fetchOrg() {
-      if (authLoading || jwtLoading) return;
+    if (!orgId || !jwtToken) return;
 
-      if (!jwtToken) {
-        setOrgError("No JWT token available. Please log out and log in again.");
-        return;
-      }
-
+    async function fetchTicalContact() {
       try {
-        setOrgError(null);
-        const { organizations } = await getJson<OrgsResponse>("/orgs/mine", undefined, {
-          Authorization: `Bearer ${jwtToken}`,
-        });
-
-        if (organizations.length === 0) {
-          setOrgError("No organization found for the current user.");
-          return;
-        }
-
-        const resolvedOrgId = organizations[0].id;
-        setOrgId(resolvedOrgId);
-
-        // Resolve the tical contact ID by matching user email against supplier contacts
-        try {
-          const supplierResp = await postJson<Record<string, never>, SupplierProxyResponse>(
-            `/orgs/${resolvedOrgId}/proxy/supplier`,
-            {},
-            { Authorization: `Bearer ${jwtToken}` },
-          );
-          const contacts = supplierResp.data?.supplier?.data?.[0]?.contacts ?? [];
-          const match = contacts.find(
-            (c) => c.contact.email?.toLowerCase() === user?.email?.toLowerCase()
-          );
-          if (match) setTicalContactId(Number(match.contact.id));
-        } catch {
-          // Non-critical — modal will show error if ticalContactId is null when submitting
-        }
-      } catch (err: any) {
-        const status =
-          typeof err === "object" && err && "statusCode" in err
-            ? (err as { statusCode?: number }).statusCode
-            : undefined;
-
-        if (status === 401) {
-          setOrgError("Your session is not authorized. Please sign in again.");
-        } else if (status === 403) {
-          setOrgError("Organization access denied for this account.");
-        } else if (status === 502) {
-          setOrgError("Unable to reach the external data service. Please contact your administrator.");
-        } else {
-          setOrgError(err.message || "An error occurred while fetching your organization.");
-        }
+        const supplierResp = await postJson<Record<string, never>, SupplierProxyResponse>(
+          `/orgs/${orgId}/proxy/supplier`,
+          {},
+          { Authorization: `Bearer ${jwtToken}` },
+        );
+        const contacts = supplierResp.data?.supplier?.data?.[0]?.contacts ?? [];
+        const match = contacts.find(
+          (c) => c.contact.email?.toLowerCase() === user?.email?.toLowerCase()
+        );
+        if (match) setTicalContactId(Number(match.contact.id));
+      } catch {
+        // Non-critical — modal will show error if ticalContactId is null when submitting
       }
     }
 
-    fetchOrg();
-  }, [jwtToken, authLoading, jwtLoading]);
+    fetchTicalContact();
+  }, [orgId, jwtToken, user?.email]);
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useTickets({
     orgId: orgId ?? "",
@@ -350,20 +310,10 @@ const TicketsPage = () => {
     XLSX.writeFile(workbook, "tickets.xlsx");
   };
 
-  if (authLoading || jwtLoading || (orgId === null && !orgError)) {
+  if (!orgId) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary dark:border-primary-dark"></div>
-      </div>
-    );
-  }
-
-  if (orgError) {
-    return (
-      <div className="flex-1 p-8">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-400">
-          {orgError}
-        </div>
       </div>
     );
   }
@@ -390,7 +340,7 @@ const TicketsPage = () => {
           onDateFromChange={setDateFrom}
           dateTo={dateTo}
           onDateToChange={setDateTo}
-          disabled={!!orgError}
+          disabled={false}
           extraRight={
             <div className="flex items-center gap-1.5">
               {/* Export */}
@@ -527,7 +477,7 @@ const TicketsPage = () => {
         </section>
 
         {/* Pagination */}
-        {!isError && !orgError && (
+        {!isError && (
           <Pagination
             page={page}
             pageSize={PAGE_SIZE}

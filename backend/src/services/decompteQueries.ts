@@ -79,6 +79,19 @@ export function buildInterventionsQuery(params: InterventionsQueryParams): strin
 }
 
 /**
+ * Builds a GraphQL query to fetch the full supplier context for a user:
+ * company list, contact IDs, and roles. Used on every authenticated page load.
+ * Email is sanitized to prevent GraphQL injection.
+ */
+export function buildContactSupplierDataQuery(email: string): string {
+  const sanitized = email.replace(/[^a-zA-Z0-9.@+\-_]/g, '');
+  if (!sanitized.includes('@')) {
+    throw Object.assign(new Error('Invalid email address'), { statusCode: 400 });
+  }
+  return `query { contactSupplier(contactEmail: "${sanitized}", is_deleted: false) { data { contact { email id } supplier { id } roles { contactroles { name } } } } }`;
+}
+
+/**
  * Builds a GraphQL query to check if an email is registered as a supplier contact.
  * Used during registration to verify the user exists in the external system.
  * Email is sanitized to prevent GraphQL injection.

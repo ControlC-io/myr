@@ -12,20 +12,34 @@ This document describes how to smoke‑test the `main_frontend` app using Playwr
 - **Anonymous navigation**
   - Visit `/` (Home), `/login`, and `/register` and ensure the pages load without console errors.
   - From Home, follow links to Login and Register.
+- **Registration with pre-validation**
+  - Attempt to register with an email that is **not** in the external supplier system → error message "Your email address is not registered in our system." (key `register.form.errorNotRegistered`).
+  - Attempt to register with a valid supplier email → registration proceeds normally.
+  - If the external API is unreachable during registration → `503` error displayed, registration blocked.
 - **Authentication**
   - Failed login with wrong password → generic error message, user remains on the login page.
-  - Successful login without 2FA/OTP → redirected to `/dashboard` and navbar shows the user session.
+  - Successful login without 2FA/OTP → supplier context loads, redirected to `/dashboard` and navbar shows the user session.
   - Successful login requiring TOTP 2FA → `/auth/2fa-challenge` flow, then `/dashboard` after a valid code.
   - Successful login requiring email OTP → `/auth/email-otp` flow, then `/dashboard` after a valid code.
+- **Supplier context loading**
+  - After login, `GET /api/user/supplier-context` is called. A loading spinner shows while it resolves.
+  - If the response contains companies, the app renders normally and `selectedSupplierId` is set to the first company (or the last persisted one from `localStorage`).
+  - If the response contains no companies, `NoAccessPage` is rendered with a logout button — no other page is accessible.
+  - If the user has multiple companies, a dropdown selector appears in the Navbar. Selecting a different company triggers data refetches on all pages.
 - **Protected UI**
   - Access `/dashboard` without a session redirects to `/login`.
-  - After login, refreshing `/dashboard` keeps the session alive.
+  - After login, refreshing `/dashboard` keeps the session alive (JWT and supplier context are restored from `localStorage`).
   - `Counter` component loads for an authenticated user and can increment/decrement the value; an unauthenticated call returns the proper error UI.
 - **Navigation once authenticated**
   - Use the navbar and dashboard quick links to open:
     - Tickets, Interventions, Invoices, SEPA mandate, Customer information,
     - BCP room reservations, Offers, Orders, Contracts, KYC, Security, Resources.
   - Each route should render its page or placeholder component without errors.
+  - All data pages use `useOrg()` → `selectedSupplierId` as the org ID. No page fetches `/orgs/mine` directly.
+- **Info page (`/info`)**
+  - Should show a card for each company from the supplier context, with supplier ID, contact ID, and roles as badges.
+  - The active company card should be highlighted.
+  - Active roles for the selected company are shown in a summary card.
 
 ## 3. Running tests with `with_server.py`
 
@@ -83,6 +97,9 @@ def test_main_frontend_smoke():
 
 Extend this script with:
 
-- End‑to‑end 2FA and email‑OTP flows when you have deterministic test users and shared secrets.
+- End-to-end 2FA and email-OTP flows when you have deterministic test users and shared secrets.
 - Checks that hitting `/dashboard` without cookies redirects back to `/login`.
+- Registration rejection test: use an email not in the external supplier system and assert the `errorNotRegistered` message.
+- NoAccessPage test: mock `GET /api/user/supplier-context` to return `{ data: { contactSupplier: { data: [] } } }` and assert the no-access screen renders with a logout button.
+- Company selector test: mock supplier context with 2+ companies and assert the Navbar dropdown is visible and switching companies triggers a data reload.
 

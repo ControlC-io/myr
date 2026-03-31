@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@shared/auth";
+import { useSupplier } from "../context/SupplierContext";
 import LanguagePicker from "./LanguagePicker";
 import ThemeToggle from "./ThemeToggle";
 import logoIcon from "../assets/icons/R-picto-seul-blanc.png";
@@ -9,12 +10,14 @@ import logoIcon from "../assets/icons/R-picto-seul-blanc.png";
 type SubNavItem = {
   label: string;
   to: string;
+  requiredRoles?: string[];
 };
 
 type PrimaryNavItem = {
   label: string;
   to?: string;
   submenu?: SubNavItem[];
+  requiredRoles?: string[];
 };
 
 const primaryNavItems: PrimaryNavItem[] = [
@@ -53,6 +56,21 @@ const Navbar = () => {
   const location = useLocation();
   const { t } = useTranslation("common");
   const { user, logout, loading } = useAuth();
+  const { companies, selectedSupplierId, setSelectedSupplierId, currentRoles } = useSupplier();
+
+  // Filter nav items based on the current company's roles.
+  // An item with no requiredRoles (or empty array) is visible to all authenticated users.
+  const isVisible = (item: { requiredRoles?: string[] }): boolean => {
+    if (!item.requiredRoles || item.requiredRoles.length === 0) return true;
+    return item.requiredRoles.some((role) => currentRoles.includes(role));
+  };
+
+  const visibleNavItems = primaryNavItems
+    .filter(isVisible)
+    .map((item) => ({
+      ...item,
+      submenu: item.submenu?.filter(isVisible),
+    }));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -119,7 +137,7 @@ const Navbar = () => {
 
               {/* Desktop nav */}
               <nav className="hidden lg:flex items-center space-x-1 text-sm font-medium">
-                {primaryNavItems.map((item) => (
+                {visibleNavItems.map((item) => (
                   <div key={item.label} className="relative group">
                     {item.submenu ? (
                       <>
@@ -177,6 +195,21 @@ const Navbar = () => {
 
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Company selector — shown only when user has access to multiple companies */}
+            {user && companies.length > 1 && (
+              <select
+                value={selectedSupplierId ?? ""}
+                onChange={(e) => setSelectedSupplierId(e.target.value)}
+                className="hidden lg:block text-xs rounded-md border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-textPrimary dark:text-textPrimary-dark px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-secondary"
+              >
+                {companies.map((c) => (
+                  <option key={c.supplier.id} value={String(c.supplier.id)}>
+                    {String(c.supplier.id)}
+                  </option>
+                ))}
+              </select>
+            )}
+
             <div className="flex items-center space-x-2">
               {/* On medium widths, these live in the sidebar to avoid crowding */}
               <div className="hidden lg:block">
@@ -334,9 +367,24 @@ const Navbar = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {/* Company selector — mobile */}
+              {user && companies.length > 1 && (
+                <select
+                  value={selectedSupplierId ?? ''}
+                  onChange={(e) => setSelectedSupplierId(e.target.value)}
+                  className="w-full text-xs rounded-md border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-textPrimary dark:text-textPrimary-dark px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-secondary"
+                >
+                  {companies.map((c) => (
+                    <option key={c.supplier.id} value={String(c.supplier.id)}>
+                      {String(c.supplier.id)}
+                    </option>
+                  ))}
+                </select>
+              )}
+
               {/* Main navigation items (mirror of header nav) */}
               <div className="space-y-2">
-                {primaryNavItems.map((item) => (
+                {visibleNavItems.map((item) => (
                   <div key={item.label} className="space-y-1">
                     <div className="flex w-full items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
                       <span>{item.label}</span>

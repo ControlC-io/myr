@@ -30,10 +30,13 @@ import ServicesPage from "./pages/ServicesPage";
 import KycPage from "./pages/KycPage";
 import MessagesPage from "./pages/MessagesPage";
 import DataDeletionPage from "./pages/DataDeletionPage";
+import NoAccessPage from "./pages/NoAccessPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
+import { SupplierProvider, useSupplier } from "./context/SupplierContext";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const { noAccess, loading: supplierLoading } = useSupplier();
 
   if (loading) {
     return (
@@ -61,11 +64,24 @@ const AppRoutes = () => {
     );
   }
 
+  if (supplierLoading) {
+    return (
+      <main className="flex-1 flex items-center justify-center">
+        <span className="text-sm text-textSecondary dark:text-textSecondary-dark">
+          Loading...
+        </span>
+      </main>
+    );
+  }
+
   return (
     <div className="flex flex-col flex-1">
       <Navbar />
       <Breadcrumb />
       <main className="flex-1">
+        {noAccess ? (
+          <NoAccessPage />
+        ) : (
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/service-status" element={<Home />} />
@@ -112,6 +128,7 @@ const AppRoutes = () => {
           {/* Redirect any unknown authenticated route back to the dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        )}
       </main>
     </div>
   );
@@ -125,9 +142,11 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
-            <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col font-sans transition-colors duration-300">
-              <AppRoutes />
-            </div>
+            <SupplierProvider>
+              <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col font-sans transition-colors duration-300">
+                <AppRoutes />
+              </div>
+            </SupplierProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

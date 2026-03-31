@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@shared/auth";
-import { getJson } from "../api/client";
 import { useBcpBookings } from "../features/bcp/hooks";
+import { useOrg } from "../hooks/useOrg";
 import type { BcpBooking } from "../features/bcp/types";
 import type { CalendarEvent } from "../components/MonthCalendar";
 import MonthCalendar from "../components/MonthCalendar";
@@ -11,10 +10,6 @@ import Pagination from "../components/Pagination";
 const PAGE_SIZE = 10;
 
 type Tab = "list" | "calendar";
-
-interface OrgsResponse {
-  organizations: { id: string }[];
-}
 
 // booking_status: 1=open slot, 2=tentative, 3=scheduled, 4=confirmed, 5=holiday
 const statusColors: Record<number, string> = {
@@ -65,45 +60,9 @@ function getTypeLabel(b: BcpBooking, t: (k: string) => string): string {
 
 const BcpRoomsPage = () => {
   const { t } = useTranslation("common");
-  const { jwtToken, loading: authLoading, jwtLoading } = useAuth();
+  const orgId = useOrg();
   const [activeTab, setActiveTab] = useState<Tab>("list");
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [orgError, setOrgError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    async function fetchOrg() {
-      if (authLoading || jwtLoading) return;
-      if (!jwtToken) {
-        setOrgError("No JWT token available. Please log out and log in again.");
-        return;
-      }
-      try {
-        setOrgError(null);
-        const { organizations } = await getJson<OrgsResponse>("/orgs/mine", undefined, {
-          Authorization: `Bearer ${jwtToken}`,
-        });
-        if (organizations.length === 0) {
-          setOrgError("No organization found for the current user.");
-          return;
-        }
-        setOrgId(organizations[0].id);
-      } catch (err: any) {
-        const status =
-          typeof err === "object" && err && "statusCode" in err
-            ? (err as { statusCode?: number }).statusCode
-            : undefined;
-        if (status === 401) {
-          setOrgError("Your session is not authorized. Please sign in again.");
-        } else if (status === 403) {
-          setOrgError("Organization access denied for this account.");
-        } else {
-          setOrgError(err.message || "An error occurred while fetching your organization.");
-        }
-      }
-    }
-    fetchOrg();
-  }, [jwtToken, authLoading, jwtLoading]);
 
   const { data: bookings = [], isLoading, isRefetching, isError, error, refetch } = useBcpBookings(orgId);
 
@@ -127,20 +86,10 @@ const BcpRoomsPage = () => {
     [sortedBookings]
   );
 
-  if (authLoading || jwtLoading || (orgId === null && !orgError)) {
+  if (!orgId) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary dark:border-primary-dark" />
-      </div>
-    );
-  }
-
-  if (orgError) {
-    return (
-      <div className="flex-1 p-8">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-400">
-          {orgError}
-        </div>
       </div>
     );
   }
@@ -275,7 +224,7 @@ const BcpRoomsPage = () => {
               </div>
             )}
           </div>
-          {!isError && !orgError && sortedBookings.length > 0 && (
+          {!isError && sortedBookings.length > 0 && (
             <Pagination
               page={page}
               pageSize={PAGE_SIZE}

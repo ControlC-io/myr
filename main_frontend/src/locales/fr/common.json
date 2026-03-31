@@ -358,6 +358,10 @@
       "text": "MyR Panel · Architecture sécurisée avec segmentation réseau · React + Express + PostgreSQL + NGINX"
     }
   },
+  "noAccess": {
+    "title": "Accès non autorisé",
+    "description": "Votre compte n'est associé à aucune entreprise dans notre système. Veuillez contacter votre administrateur."
+  },
   "placeholders": {
     "underConstruction": "Cette section est en cours de construction. Les fonctionnalités seront ajoutées prochainement.",
     "loading": "Chargement..."
@@ -584,6 +588,12 @@
       "emailLabel": "Email",
       "nameLabel": "Nom",
       "nameNotSet": "Non renseigné",
+      "companyCardTitle": "Entreprise",
+      "companySelected": "Active",
+      "supplierIdLabel": "ID fournisseur",
+      "contactIdLabel": "ID contact",
+      "rolesLabel": "Rôles",
+      "activeRolesLabel": "Rôles actifs pour l'entreprise sélectionnée",
       "architectureCardTitle": "État de l'architecture",
       "architecture": {
         "nginx": "NGINX Reverse Proxy (DMZ)",

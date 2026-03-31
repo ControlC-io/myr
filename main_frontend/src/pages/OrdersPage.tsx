@@ -1,14 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@shared/auth";
-import { getJson } from "../api/client";
 import { useOrders, type OrderItem } from "../features/orders/useOrders";
+import { useOrg } from "../hooks/useOrg";
 import PageHeader from "../components/PageHeader";
-
-interface OrgsResponse {
-  organizations: { id: string }[];
-}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -33,45 +28,12 @@ function totalAmount(order: OrderItem): string {
 }
 
 const OrdersPage = () => {
-  const { jwtToken, loading: authLoading, jwtLoading } = useAuth();
+  const orgId = useOrg();
   const { t } = useTranslation("common");
   const navigate = useNavigate();
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [orgError, setOrgError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    async function fetchOrg() {
-      if (authLoading || jwtLoading) return;
-      if (!jwtToken) {
-        setOrgError("No JWT token available. Please log out and log in again.");
-        return;
-      }
-      try {
-        setOrgError(null);
-        const { organizations } = await getJson<OrgsResponse>("/orgs/mine", undefined, {
-          Authorization: `Bearer ${jwtToken}`,
-        });
-        if (organizations.length === 0) {
-          setOrgError("No organization found for the current user.");
-          return;
-        }
-        setOrgId(organizations[0].id);
-      } catch (err: unknown) {
-        const errStatus =
-          typeof err === "object" && err && "statusCode" in err
-            ? (err as { statusCode?: number }).statusCode
-            : undefined;
-        if (errStatus === 401) setOrgError("Your session is not authorized. Please sign in again.");
-        else if (errStatus === 403) setOrgError("Organization access denied for this account.");
-        else if (errStatus === 502) setOrgError("Unable to reach the external data service. Please contact your administrator.");
-        else setOrgError(err instanceof Error ? err.message : "An error occurred while fetching your organization.");
-      }
-    }
-    fetchOrg();
-  }, [jwtToken, authLoading, jwtLoading]);
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useOrders(orgId);
 
@@ -98,29 +60,10 @@ const OrdersPage = () => {
     return Array.from(statuses).map((s) => ({ label: s, value: s }));
   }, [orders]);
 
-  const toggleExpand = (id: number | string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  if (authLoading || jwtLoading || (orgId === null && !orgError)) {
+  if (!orgId) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary dark:border-primary-dark"></div>
-      </div>
-    );
-  }
-
-  if (orgError) {
-    return (
-      <div className="flex-1 p-8">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-400">
-          {orgError}
-        </div>
       </div>
     );
   }
@@ -144,7 +87,7 @@ const OrdersPage = () => {
           statusOptions={statusOptions}
           isRefetching={isRefetching}
           onRefetch={refetch}
-          disabled={!!orgError}
+          disabled={false}
         />
 
         <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
@@ -194,7 +137,6 @@ const OrdersPage = () => {
                     <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest">
                       {t("orders.columns.status")}
                     </th>
-                    <th className="px-4 py-4 w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/5">

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@shared/auth";
-import { getJson, postJson, putJson } from "../api/client";
+import { postJson, putJson } from "../api/client";
+import { useOrg } from "../hooks/useOrg";
 
 interface SupplierContact {
   contact: {
@@ -39,15 +40,6 @@ interface ProxyResponse {
   };
 }
 
-interface Org {
-  id: string;
-  name: string;
-  role: string;
-}
-
-interface OrgsResponse {
-  organizations: Org[];
-}
 
 interface EditableSupplier {
   name: string;
@@ -77,7 +69,8 @@ const EMPTY_NEW_CONTACT: NewContact = {
 
 export default function InformationClient() {
   const { t } = useTranslation("common");
-  const { jwtToken, user, loading: authLoading, jwtLoading } = useAuth();
+  const { jwtToken, user } = useAuth();
+  const orgId = useOrg();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supplier, setSupplier] = useState<SupplierData | null>(null);
@@ -101,14 +94,8 @@ export default function InformationClient() {
 
   useEffect(() => {
     async function fetchData() {
-      if (authLoading || jwtLoading) {
+      if (!jwtToken || !orgId) {
         setLoading(true);
-        return;
-      }
-
-      if (!jwtToken) {
-        setError("No JWT token available. Please log out and log in again.");
-        setLoading(false);
         return;
       }
 
@@ -116,24 +103,10 @@ export default function InformationClient() {
         setLoading(true);
         setError(null);
 
-        const { organizations } = await getJson<OrgsResponse>("/orgs/mine", undefined, {
-          Authorization: `Bearer ${jwtToken}`,
-        });
-
-        if (organizations.length === 0) {
-          setError("No organization found for the current user.");
-          setLoading(false);
-          return;
-        }
-
-        const orgId = organizations[0].id;
-
         const response = await postJson<{}, ProxyResponse>(
           `/orgs/${orgId}/proxy/supplier`,
           {},
-          {
-            Authorization: `Bearer ${jwtToken}`,
-          }
+          { Authorization: `Bearer ${jwtToken}` }
         );
 
         const supplierData = response.data?.supplier?.data?.[0];
@@ -166,7 +139,7 @@ export default function InformationClient() {
     }
 
     fetchData();
-  }, [jwtToken, authLoading, jwtLoading]);
+  }, [jwtToken, orgId]);
 
   function handleEnterEdit() {
     if (!supplier) return;
@@ -244,11 +217,6 @@ export default function InformationClient() {
         setIsEditing(false);
         return;
       }
-
-      const { organizations } = await getJson<OrgsResponse>("/orgs/mine", undefined, {
-        Authorization: `Bearer ${jwtToken}`,
-      });
-      const orgId = organizations[0]?.id;
 
       await putJson(
         `/orgs/${orgId}/proxy/supplier/update`,

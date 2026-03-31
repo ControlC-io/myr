@@ -161,14 +161,60 @@ Concretely, the implementation today uses:
 
 The external API proxy uses two dedicated services (native `fetch`, no axios):
 - `backend/src/services/proxyService.ts` — single HTTP caller for the Decompte GraphQL endpoint. Reads `DECOMPTE_API_BASE`, `DECOMPTE_API_KEY`, `DECOMPTE_API_BEARER` from env. All external API calls go through here.
-- `backend/src/services/decompteQueries.ts` — all GraphQL query builders (`buildSupplierQuery`, `buildTicketsQuery`). Also validates `externalReferenceId` as a safe integer before interpolation. **This is the only file to update when the external API changes its query structure.**
+- `backend/src/services/decompteQueries.ts` — all GraphQL query builders. **This is the only file to update when the external API changes its query structure.** Current builders:
+  - `buildSupplierQuery(supplierId)` — full supplier data for the proxy routes.
+  - `buildTicketsQuery(...)` — paginated ticket list.
+  - `buildContactSupplierQuery(email)` — pre-registration check; returns `{ total }` only.
+  - `buildContactSupplierDataQuery(email)` — full contact+supplier+roles data; used by `/api/user/supplier-context`.
 
-Example tenant‑aware routes (implemented in `backend/src/routes/organizationResources.ts`):
+Example tenant-aware routes (implemented in `backend/src/routes/organizationResources.ts`):
 
 - `GET /api/orgs/{orgId}/profile` – requires at least `VIEWER`.
 - `GET /api/orgs/{orgId}/audit-logs` – requires at least `ADMIN` and is fully paginated.
 - `POST /api/orgs/{orgId}/proxy/supplier` – requires `VIEWER`. Proxies GraphQL to Decompte using `org.externalReferenceId` as the supplier ID.
 - `POST /api/orgs/{orgId}/proxy/tickets` – requires `VIEWER`. Same pattern, returns paginated ticket list.
+
+User context route (implemented in `backend/src/routes/userContext.ts`):
+
+- `GET /api/user/supplier-context` – requires JWT. Fetches the authenticated user's companies and roles from the external `contactSupplier` API using the email from the JWT payload. Also auto-syncs each company as an `Organization` record and the user as a `MANAGER` member in the local DB (see section 2.3 below). This is the **source of truth for company and role data** in the main frontend.
+
+### 2.3 Supplier Context and Org Auto-Sync
+
+The main frontend uses an **external API as the source of truth** for company membership and roles. The local `Organization` and `Member` tables serve as a synchronized cache to satisfy `checkOrganizationAccess` on proxy routes.
+
+**Flow on every login / app load:**
+
+```
+JWT obtained
+  └── GET /api/user/supplier-context
+       ├── Calls contactSupplier(email) on the external Decompte GraphQL API
+       ├── For each company returned:
+       │    ├── Upserts Organization(id=supplierId, externalReferenceId=supplierId)
+       │    └── Upserts Member(userId, organizationId=supplierId, role=MANAGER)
+       └── Returns { data: { contactSupplier: { data: [...] } } } to the frontend
+```
+
+The `supplierId` from the external API **is used directly as the `Organization.id`** in the local DB. This allows `/api/orgs/:orgId/proxy/*` routes to resolve the org and pass `checkOrganizationAccess` using the supplier ID as the `:orgId` param.
+
+**What `org.externalReferenceId` is used for:**
+The proxy route handler (`POST /api/orgs/:orgId/proxy/supplier`) reads `org.externalReferenceId` to build the GraphQL query. The auto-sync sets `externalReferenceId = supplierId` so the proxy can identify which supplier to query.
+
+**No access case:**
+If the external API returns an empty list, the frontend shows `NoAccessPage` and no proxy calls are made. The local DB is not modified.
+
+### 2.4 Pre-Registration Supplier Validation
+
+Before a new user can register (sign up via `POST /api/auth/sign-up/email`), the backend interceptor in `backend/src/routes/betterAuthProxy.ts` calls:
+
+```
+contactSupplier(contactEmail: "<email>", is_deleted: false) { total }
+```
+
+- If `total > 0`: registration is allowed and the request is forwarded to Better Auth.
+- If `total = 0`: returns `403` with `{ error: "USER_NOT_REGISTERED", code: "USER_NOT_REGISTERED" }`.
+- If the external API is unreachable: returns `503` (fail-closed — registration is blocked).
+
+This ensures only users whose email exists in the external supplier system can create an account.
 
 ---
 
@@ -199,20 +245,26 @@ All listing endpoints (Logs, Users, Settings) must implement standard pagination
 When a user is registered but receives a `403 Forbidden` error, follow this checklist:
 
 1. **Identity**: Ensure the user has a valid JWT (check `Authorization: Bearer <token>` header).
-2. **Organization Membership**:
-    * Check the `Member` table for a row matching `userId` and `organizationId`.
-    * Verify the `Member.role` (VIEWER, MANAGER, ADMIN, OWNER) meets the route requirement.
-3. **Organization Configuration**:
-    * For proxy routes (e.g., `/api/orgs/:orgId/proxy/*`), ensure `Organization.externalReferenceId` is correctly set in the database.
-4. **Global RBAC**:
-    * Check if the endpoint has an entry in `RoleEndpointMapping`. If it does, the user must have a matching `UserRole` assigned.
-5. **Diagnostic Fields**:
+2. **Supplier context loaded**: The `GET /api/user/supplier-context` call must have completed successfully after login. This is what creates the `Organization` and `Member` records. If the external API was unreachable at login time, these records may not exist yet — ask the user to log out and back in.
+3. **Organization Membership**:
+    * Check the `Member` table for a row matching `userId` and `organizationId` (the supplier ID).
+    * Verify the `Member.role` is `MANAGER` (set automatically by the sync).
+4. **Organization Configuration**:
+    * For proxy routes (e.g., `/api/orgs/:orgId/proxy/*`), ensure `Organization.externalReferenceId` equals the supplier ID. The auto-sync sets this, but a manually created org may have it null → returns `403 "Organization has no linked supplier"`.
+5. **Global RBAC**:
+    * Check if the endpoint has an entry in `RoleEndpointMapping`. If it does, the user must have a matching `UserRole` assigned. By default no mappings exist (opt-in RBAC), so all authenticated users pass.
+6. **Diagnostic Fields**:
     * The `403` response includes `source` and `code` fields to identify which layer blocked the request:
         * `source: 'rbac_global'`, `code: 'RBAC_ROLE_ENDPOINT_DENIED'`: Blocked by the gateway-level RBAC (missing `UserRole` for a mapped endpoint).
         * `source: 'org_membership'`, `code: 'ORG_MEMBERSHIP_REQUIRED'`: Blocked because the user is not a member of the organization.
         * `source: 'org_role'`, `code: 'ORG_ROLE_INSUFFICIENT'`: Blocked because the user's role in the organization is insufficient.
+        * No `source` field, message `"Organization has no linked supplier"`: `Organization.externalReferenceId` is null — the proxy cannot build a GraphQL query.
 
 ### 4.2 Switching Organizations
-The backend does not track an "active" organization in the session. Access is determined per-request:
-* The `orgId` must be passed in the URL (e.g., `/api/orgs/:orgId/...`) or via the `x-organization-id` header.
-* Frontend components must ensure they are using the correct `orgId` for the current context.
+The active organization is managed client-side by the `SupplierContext` (`main_frontend/src/context/SupplierContext.tsx`):
+
+* On login / app load, `GET /api/user/supplier-context` returns the user's companies from the external API.
+* `selectedSupplierId` is stored in `localStorage` (key `myr_selected_supplier`) and defaults to the first company.
+* All pages use `useOrg()` → `selectedSupplierId` as the `:orgId` for proxy calls. Changing the selected company automatically triggers React Query refetches.
+* If the user has more than one company, a dropdown selector appears in the Navbar.
+* The backend has no concept of "active org" in the session — `orgId` is always passed in the URL per request.

@@ -20,7 +20,12 @@
       "Bash(grep -r SG. /c/Dev/myr --include=*.env* --include=*.txt --include=*.json --include=*.md -l)",
       "Bash(grep -r SG. /c/Dev/myr --include=*.env*)",
       "Bash(find /c/Dev/myr/main_frontend/src -name *auth* -o -name *Auth*)",
-      "Bash(find /c/Dev/myr/shared -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx \\\\\\))"
+      "Bash(find /c/Dev/myr/shared -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx \\\\\\))",
+      "Bash(grep -l orgId C:Devmyrmain_frontendsrcpages/*.tsx)",
+      "Bash(grep -l \"useOrg\\\\|/orgs/mine\" C:Devmyrmain_frontendsrcpages/*.tsx)",
+      "Bash(ls -1 C:Devmyrmain_frontendsrcpages/*.tsx)",
+      "Bash(find C:Devmyrmain_frontendsrcfeatures -type f -name *.ts -o -name *.tsx)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
