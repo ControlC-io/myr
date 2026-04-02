@@ -4,7 +4,7 @@ import { getJson } from '../api/client';
 
 export interface SupplierCompany {
   contact: { email: string; id: number };
-  supplier: { id: number };
+  supplier: { id: number; name: string; raisonsociale: string };
   roles: Array<{ contactroles: { name: string } }>;
 }
 

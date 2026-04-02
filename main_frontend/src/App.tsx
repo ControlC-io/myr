@@ -35,6 +35,9 @@ import { ThemeProvider } from "./theme/ThemeProvider";
 import { SupplierProvider, useSupplier } from "./context/SupplierContext";
 import { PortalConfigProvider } from "./context/PortalConfigContext";
 import PortalServiceGuard from "./components/PortalServiceGuard";
+import ExternalRedirect from "./components/ExternalRedirect";
+import { RoleGuard } from "./components/RoleGuard";
+import { ROUTE_PERMISSIONS } from "./config/routePermissions";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -89,62 +92,68 @@ const AppRoutes = () => {
           <Route path="/service-status" element={<Home />} />
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/info" element={<InfoPage />} />
-          <Route path="/tickets" element={<TicketsPage />} />
-          <Route path="/tickets/:ticketId" element={<TicketDetailPage />} />
-          <Route path="/interventions" element={<InterventionsPage />} />
-          <Route path="/facturation" element={<InvoicesPage />} />
-          <Route
-            path="/payment-information"
-            element={<PaymentInformationPage />}
-          />
-          <Route path="/sepa" element={<SepaPage />} />
-          <Route path="/information-client" element={<InformationClient />} />
+          <Route path="/tickets" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/tickets']}><TicketsPage /></RoleGuard>} />
+          <Route path="/tickets/:ticketId" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/tickets']}><TicketDetailPage /></RoleGuard>} />
+          <Route path="/intervention" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/intervention']}><InterventionsPage /></RoleGuard>} />
+          <Route path="/invoice" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/invoice']}><InvoicesPage /></RoleGuard>} />
+          <Route path="/payment-information" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/payment-information']}><PaymentInformationPage /></RoleGuard>} />
+          <Route path="/sepa" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/sepa']}><SepaPage /></RoleGuard>} />
+          <Route path="/customer-information" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/customer-information']}><InformationClient /></RoleGuard>} />
           <Route
             path="/reservation-salles-bcp"
             element={
-              <PortalServiceGuard serviceKey="BCP">
-                <BcpRoomsPage />
-              </PortalServiceGuard>
+              <RoleGuard requiredRoles={ROUTE_PERMISSIONS['/reservation-salles-bcp']}>
+                <PortalServiceGuard serviceKey="BCP">
+                  <BcpRoomsPage />
+                </PortalServiceGuard>
+              </RoleGuard>
             }
           />
           <Route path="/suggestions" element={<SuggestionsPage />} />
-          <Route path="/offer" element={<OffresPage />} />
-          <Route path="/offer/:offerId" element={<OfferDetailPage />} />
-          <Route path="/commandes" element={<OrdersPage />} />
-          <Route path="/commandes/:orderId" element={<OrderDetailPage />} />
+          <Route path="/offer" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/offer']}><OffresPage /></RoleGuard>} />
+          <Route path="/offer/:offerId" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/offer']}><OfferDetailPage /></RoleGuard>} />
+          <Route path="/orders" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/orders']}><OrdersPage /></RoleGuard>} />
+          <Route path="/orders/:orderId" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/orders']}><OrderDetailPage /></RoleGuard>} />
           <Route
             path="/services"
             element={
-              <PortalServiceGuard serviceKey="Services">
-                <ServicesPage />
-              </PortalServiceGuard>
+              <RoleGuard requiredRoles={ROUTE_PERMISSIONS['/services']}>
+                <PortalServiceGuard serviceKey="Services">
+                  <ServicesPage />
+                </PortalServiceGuard>
+              </RoleGuard>
             }
           />
           <Route
             path="/kyc"
             element={
-              <PortalServiceGuard serviceKey="KYC">
-                <KycPage />
-              </PortalServiceGuard>
+              <RoleGuard requiredRoles={ROUTE_PERMISSIONS['/kyc']}>
+                <PortalServiceGuard serviceKey="KYC">
+                  <KycPage />
+                </PortalServiceGuard>
+              </RoleGuard>
             }
           />
           <Route path="/messages" element={<MessagesPage />} />
           <Route
             path="/securite"
-            element={<PlaceholderPage titleKey="pages.security.title" />}
+            element={
+              <RoleGuard requiredRoles={ROUTE_PERMISSIONS['/securite']}>
+                <ExternalRedirect to="https://rcarre.appfarm.app/myrsecure" />
+              </RoleGuard>
+            }
           />
           <Route path="/ressources" element={<ResourcesPage />} />
           <Route path="/ressources/external-services" element={<ResourcesPage />} />
-          <Route
-            path="/data-deletion"
-            element={<DataDeletionPage />}
-          />
+          <Route path="/data-deletion" element={<RoleGuard requiredRoles={ROUTE_PERMISSIONS['/data-deletion']}><DataDeletionPage /></RoleGuard>} />
           <Route
             path="/commande-rapide"
             element={
-              <PortalServiceGuard serviceKey="EasyOrdering">
-                <PlaceholderPage titleKey="pages.quickOrder.title" />
-              </PortalServiceGuard>
+              <RoleGuard requiredRoles={ROUTE_PERMISSIONS['/commande-rapide']}>
+                <PortalServiceGuard serviceKey="EasyOrdering">
+                  <PlaceholderPage titleKey="pages.quickOrder.title" />
+                </PortalServiceGuard>
+              </RoleGuard>
             }
           />
           <Route path="/auth/2fa-challenge" element={<TwoFactorChallenge />} />

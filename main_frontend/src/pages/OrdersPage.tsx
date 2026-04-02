@@ -144,7 +144,7 @@ const OrdersPage = () => {
                     <tr
                       key={order.id}
                       className="hover:bg-backgroundSecondary/50 dark:hover:bg-backgroundSecondary-dark/50 transition-colors group cursor-pointer"
-                      onClick={() => navigate(`/commandes/${order.id}`, { state: { order } })}
+                      onClick={() => navigate(`/orders/${order.id}`, { state: { order } })}
                     >
                       <td className="px-6 py-4">
                         <span className="text-sm font-bold text-textPrimary dark:text-textPrimary-dark group-hover:text-pink transition-colors">

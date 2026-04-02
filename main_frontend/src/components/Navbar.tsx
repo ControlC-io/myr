@@ -6,7 +6,7 @@ import { useSupplier } from "../context/SupplierContext";
 import LanguagePicker from "./LanguagePicker";
 import ThemeToggle from "./ThemeToggle";
 import { usePortalConfig } from "../context/PortalConfigContext";
-import logoIcon from "../assets/icons/R-picto-seul-blanc.png";
+import { ROUTE_PERMISSIONS } from "../config/routePermissions";
 
 type SubNavItem = {
   label: string;
@@ -27,31 +27,31 @@ const primaryNavItems: PrimaryNavItem[] = [
   {
     label: "Ticketing",
     submenu: [
-      { label: "Tickets", to: "/tickets" },
-      { label: "Upcoming interventions", to: "/interventions" },
+      { label: "Tickets", to: "/tickets", requiredRoles: ROUTE_PERMISSIONS['/tickets'] },
+      { label: "Upcoming interventions", to: "/intervention", requiredRoles: ROUTE_PERMISSIONS['/intervention'] },
     ],
   },
   {
     label: "Administrative",
     submenu: [
-      { label: "Invoices", to: "/facturation" },
-      { label: "Payment information", to: "/payment-information" },
-      { label: "Customer information", to: "/information-client" },
-      { label: "SEPA Mandate", to: "/sepa" },
-      { label: "BCP room reservations", to: "/reservation-salles-bcp", portalServiceKey: "BCP" },
+      { label: "Invoices", to: "/invoice", requiredRoles: ROUTE_PERMISSIONS['/invoice'] },
+      { label: "Payment information", to: "/payment-information", requiredRoles: ROUTE_PERMISSIONS['/payment-information'] },
+      { label: "Customer information", to: "/customer-information", requiredRoles: ROUTE_PERMISSIONS['/customer-information'] },
+      { label: "SEPA Mandate", to: "/sepa", requiredRoles: ROUTE_PERMISSIONS['/sepa'] },
+      { label: "BCP room reservations", to: "/reservation-salles-bcp", portalServiceKey: "BCP", requiredRoles: ROUTE_PERMISSIONS['/reservation-salles-bcp'] },
       { label: "Your suggestions", to: "/suggestions" },
-      { label: "Data Deletion", to: "/data-deletion" },
+      { label: "Data Deletion", to: "/data-deletion", requiredRoles: ROUTE_PERMISSIONS['/data-deletion'] },
     ],
   },
   {
     label: "Sales",
     submenu: [
-      { label: "Offers", to: "/offer" },
-      { label: "Orders", to: "/commandes" },
+      { label: "Offers", to: "/offer", requiredRoles: ROUTE_PERMISSIONS['/offer'] },
+      { label: "Orders", to: "/orders", requiredRoles: ROUTE_PERMISSIONS['/orders'] },
     ],
   },
-  { label: "Contracts", to: "/services", portalServiceKey: "Services" },
-  { label: "Security", to: "/securite" },
+  { label: "Contracts", to: "/services", portalServiceKey: "Services", requiredRoles: ROUTE_PERMISSIONS['/services'] },
+  { label: "Security", to: "https://rcarre.appfarm.app/myrsecure", requiredRoles: ROUTE_PERMISSIONS['/securite'] },
   { label: "Resources", to: "/ressources/external-services" },
 ];
 
@@ -89,7 +89,8 @@ const Navbar = () => {
     .map((item) => ({
       ...item,
       submenu: item.submenu?.filter(isVisible),
-    }));
+    }))
+    .filter((item) => !item.submenu || item.submenu.length > 0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -116,6 +117,8 @@ const Navbar = () => {
         ? "bg-secondary text-secondary-on-light dark:text-secondary-on-dark"
         : "text-textSecondary dark:text-textSecondary-dark hover:text-textPrimary dark:hover:text-textPrimary-dark hover:bg-primary/10 dark:hover:bg-white/10"
     }`;
+
+  const isExternalUrl = (value: string): boolean => value.startsWith("http://") || value.startsWith("https://");
 
   const showInactiveNotice = (message: string) => {
     if (!message) return;
@@ -161,12 +164,8 @@ const Navbar = () => {
             {/* Brand */}
             <div className="flex items-center gap-2 sm:gap-6 min-w-0">
               <Link to="/dashboard" className="flex items-center space-x-2">
-                <span className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shadow-sm overflow-hidden">
-                  <img
-                    src={logoIcon}
-                    alt="MyR Panel"
-                    className="w-7 h-7 object-contain"
-                  />
+                <span className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shadow-sm overflow-hidden text-white font-extrabold">
+                  R
                 </span>
                 <span className="text-base font-bold tracking-tight text-textPrimary dark:text-textPrimary-dark truncate max-w-[40vw] sm:max-w-none">
                   MyR
@@ -237,14 +236,27 @@ const Navbar = () => {
                     ) : (() => {
                       const config = item.portalServiceKey ? getServiceConfig(item.portalServiceKey) : { active: true };
                       const inactiveMessage = item.portalServiceKey ? getLocalizedInactiveMessage(item.portalServiceKey, i18n.language) : '';
+                      const href = item.to ?? "#";
+                      const external = isExternalUrl(href);
 
                       return config.active ? (
-                        <Link
-                          to={item.to ?? "#"}
-                          className={navLinkClass(item.to ?? "#")}
-                        >
-                          {item.label}
-                        </Link>
+                        external ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={navLinkClass(href)}
+                          >
+                            {item.label}
+                          </a>
+                        ) : (
+                          <Link
+                            to={href}
+                            className={navLinkClass(href)}
+                          >
+                            {item.label}
+                          </Link>
+                        )
                       ) : (
                         <button
                           type="button"
@@ -273,7 +285,7 @@ const Navbar = () => {
               >
                 {companies.map((c) => (
                   <option key={c.supplier.id} value={String(c.supplier.id)}>
-                    {String(c.supplier.id)}
+                    {c.supplier.raisonsociale || c.supplier.name || String(c.supplier.id)}
                   </option>
                 ))}
               </select>
@@ -445,7 +457,7 @@ const Navbar = () => {
                 >
                   {companies.map((c) => (
                     <option key={c.supplier.id} value={String(c.supplier.id)}>
-                      {String(c.supplier.id)}
+                      {c.supplier.raisonsociale || c.supplier.name || String(c.supplier.id)}
                     </option>
                   ))}
                 </select>
@@ -510,15 +522,29 @@ const Navbar = () => {
                     {!item.submenu && item.to && (() => {
                       const config = item.portalServiceKey ? getServiceConfig(item.portalServiceKey) : { active: true };
                       const inactiveMessage = item.portalServiceKey ? getLocalizedInactiveMessage(item.portalServiceKey, i18n.language) : '';
+                      const href = item.to;
+                      const external = isExternalUrl(href);
 
                       return config.active ? (
-                        <Link
-                          to={item.to}
-                          onClick={() => setMobileOpen(false)}
-                          className="ml-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark inline-flex"
-                        >
-                          {item.label}
-                        </Link>
+                        external ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setMobileOpen(false)}
+                            className="ml-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark inline-flex"
+                          >
+                            {item.label}
+                          </a>
+                        ) : (
+                          <Link
+                            to={href}
+                            onClick={() => setMobileOpen(false)}
+                            className="ml-3 px-3 py-1.5 rounded-md text-sm text-textSecondary dark:text-textSecondary-dark hover:bg-background dark:hover:bg-background-dark inline-flex"
+                          >
+                            {item.label}
+                          </Link>
+                        )
                       ) : (
                         <button
                           type="button"

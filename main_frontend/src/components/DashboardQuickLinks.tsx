@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePortalConfig } from "../context/PortalConfigContext";
+import { useSupplier } from "../context/SupplierContext";
 import { useEffect, useRef, useState } from "react";
+import { ROUTE_PERMISSIONS, type Role } from "../config/routePermissions";
 
 type DashboardLinkType = "internal" | "external";
 
@@ -12,6 +14,7 @@ interface DashboardLink {
   badge?: string;
   badgeVariant?: "count" | "new";
   portalServiceKey?: string;
+  requiredRoles?: Role[];
 }
 
 interface Section {
@@ -141,30 +144,30 @@ const sections: Section[] = [
   {
     labelKey: "dashboard.home.sections.ticketing",
     links: [
-      { id: "tickets", type: "internal", to: "/tickets" },
-      { id: "interventions", type: "internal", to: "/interventions" },
-      { id: "securite", type: "internal", to: "/securite" },
+      { id: "tickets", type: "internal", to: "/tickets", requiredRoles: ROUTE_PERMISSIONS['/tickets'] },
+      { id: "interventions", type: "internal", to: "/intervention", requiredRoles: ROUTE_PERMISSIONS['/intervention'] },
+      { id: "securite", type: "external", to: "https://rcarre.appfarm.app/myrsecure", requiredRoles: ROUTE_PERMISSIONS['/securite'] },
       { id: "ressources", type: "internal", to: "/ressources" },
     ],
   },
   {
     labelKey: "dashboard.home.sections.administrative",
     links: [
-      { id: "facturation", type: "internal", to: "/facturation" },
-      { id: "sepa", type: "internal", to: "/sepa" },
-      { id: "information-client", type: "internal", to: "/information-client" },
-      { id: "kyc", type: "internal", to: "/kyc", portalServiceKey: "KYC" },
-      { id: "reservation-salles", type: "internal", to: "/reservation-salles-bcp", portalServiceKey: "BCP" },
+      { id: "facturation", type: "internal", to: "/invoice", requiredRoles: ROUTE_PERMISSIONS['/invoice'] },
+      { id: "sepa", type: "internal", to: "/sepa", requiredRoles: ROUTE_PERMISSIONS['/sepa'] },
+      { id: "information-client", type: "internal", to: "/customer-information", requiredRoles: ROUTE_PERMISSIONS['/customer-information'] },
+      { id: "kyc", type: "internal", to: "/kyc", portalServiceKey: "KYC", requiredRoles: ROUTE_PERMISSIONS['/kyc'] },
+      { id: "reservation-salles", type: "internal", to: "/reservation-salles-bcp", portalServiceKey: "BCP", requiredRoles: ROUTE_PERMISSIONS['/reservation-salles-bcp'] },
       { id: "suggestions", type: "internal", to: "/suggestions" },
     ],
   },
   {
     labelKey: "dashboard.home.sections.sales",
     links: [
-      { id: "offres", type: "internal", to: "/offer", badge: "New", badgeVariant: "new" },
-      { id: "commandes", type: "internal", to: "/commandes" },
-      { id: "services", type: "internal", to: "/services", portalServiceKey: "Services" },
-      { id: "commande-rapide", type: "internal", to: "/commande-rapide", portalServiceKey: "EasyOrdering" },
+      { id: "offres", type: "internal", to: "/offer", badge: "New", badgeVariant: "new", requiredRoles: ROUTE_PERMISSIONS['/offer'] },
+      { id: "commandes", type: "internal", to: "/orders", requiredRoles: ROUTE_PERMISSIONS['/orders'] },
+      { id: "services", type: "internal", to: "/services", portalServiceKey: "Services", requiredRoles: ROUTE_PERMISSIONS['/services'] },
+      { id: "commande-rapide", type: "internal", to: "/commande-rapide", portalServiceKey: "EasyOrdering", requiredRoles: ROUTE_PERMISSIONS['/commande-rapide'] },
     ],
   },
 ];
@@ -243,6 +246,7 @@ export const DashboardQuickLinks = ({ glassy = false }: DashboardQuickLinksProps
   const { t, i18n } = useTranslation("common");
   const navigate = useNavigate();
   const { getServiceConfig, getLocalizedInactiveMessage } = usePortalConfig();
+  const { currentRoles } = useSupplier();
   const [inactiveNotice, setInactiveNotice] = useState<string | null>(null);
   const inactiveNoticeTimerRef = useRef<number | null>(null);
 
@@ -286,6 +290,9 @@ export const DashboardQuickLinks = ({ glassy = false }: DashboardQuickLinksProps
     <div className="space-y-5">
       {sections.map((section) => {
         const visibleLinks = section.links.filter(link => {
+          if (link.requiredRoles?.length) {
+            if (!link.requiredRoles.some((r) => currentRoles.includes(r))) return false;
+          }
           if (link.portalServiceKey) {
             const config = getServiceConfig(link.portalServiceKey);
             return config.visible;

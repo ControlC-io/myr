@@ -88,7 +88,7 @@ export function buildContactSupplierDataQuery(email: string): string {
   if (!sanitized.includes('@')) {
     throw Object.assign(new Error('Invalid email address'), { statusCode: 400 });
   }
-  return `query { contactSupplier(contactEmail: "${sanitized}", is_deleted: false) { data { contact { email id } supplier { id } roles { contactroles { name } } } } }`;
+  return `query { contactSupplier(contactEmail: "${sanitized}", is_deleted: false) { data { contact { email id } supplier { id name raisonsociale } roles { contactroles { name } } } } }`;
 }
 
 /**

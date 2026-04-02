@@ -39,7 +39,7 @@ const OrderDetailPage = () => {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/commandes")}
+          onClick={() => navigate("/orders")}
           className="text-secondary text-sm hover:underline"
         >
           ← {t("orders.detail.back")}
@@ -77,7 +77,7 @@ const OrderDetailPage = () => {
         {/* Back link */}
         <button
           type="button"
-          onClick={() => navigate("/commandes")}
+          onClick={() => navigate("/orders")}
           className="text-sm text-textSecondary dark:text-textSecondary-dark hover:text-secondary transition-colors"
         >
           ← {t("orders.detail.back")}
