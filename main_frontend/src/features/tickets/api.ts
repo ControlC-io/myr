@@ -1,4 +1,4 @@
-import { postJson } from "../../api/client";
+import { postJson, getJson } from "../../api/client";
 import type {
   Ticket,
   TicketListApiResponse,
@@ -35,6 +35,18 @@ export interface CreateTicketPayload {
   title: string;
   description?: string;
   followupContacts?: string;
+}
+
+export async function fetchTicketById(
+  orgId: string,
+  ticketId: number,
+  jwtToken: string,
+): Promise<{ ticket: Ticket | null }> {
+  return getJson<{ ticket: Ticket | null }>(
+    `/orgs/${orgId}/proxy/tickets/${ticketId}`,
+    undefined,
+    { Authorization: `Bearer ${jwtToken}` },
+  );
 }
 
 export async function createTicket(

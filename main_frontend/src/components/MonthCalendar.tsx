@@ -5,7 +5,9 @@ export interface CalendarEvent {
   id: number | string;
   date: string; // YYYY-MM-DD
   label: string;
+  time?: string; // HH:MM
   colorClass?: string;
+  onClick?: () => void;
 }
 
 function getWeekNumber(date: Date): number {
@@ -149,7 +151,7 @@ const MonthCalendar = ({ events = [] }: MonthCalendarProps) => {
                     return (
                       <td
                         key={colIdx}
-                        className="border-r border-border/30 dark:border-border-dark/30 last:border-r-0 align-top pl-3 pt-3 pb-3 min-h-[80px]"
+                        className="border-r border-border/30 dark:border-border-dark/30 last:border-r-0 align-top pl-3 pt-3 pb-3 min-h-[120px]"
                       >
                         <span
                           className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-medium transition-colors ${
@@ -168,9 +170,17 @@ const MonthCalendar = ({ events = [] }: MonthCalendarProps) => {
                               <div
                                 key={ev.id}
                                 title={ev.label}
-                                className={`truncate text-[10px] font-semibold px-1.5 py-0.5 rounded ${ev.colorClass ?? "bg-secondary/15 text-secondary dark:bg-secondary/20 dark:text-secondary"}`}
+                                onClick={ev.onClick}
+                                className={`text-[10px] px-1.5 py-1 rounded ${ev.colorClass ?? "bg-secondary/15 text-secondary dark:bg-secondary/80 dark:text-white"} ${ev.onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
                               >
-                                {ev.label}
+                                {ev.time && (
+                                  <span className="block font-bold leading-tight">
+                                    {ev.time}
+                                  </span>
+                                )}
+                                <span className="block truncate font-medium leading-tight mt-0.5">
+                                  {ev.label}
+                                </span>
                               </div>
                             ))}
                             {hiddenCount > 0 && (

@@ -73,6 +73,7 @@ services:
     container_name: main_frontend_app
     environment:
       NODE_ENV: ${NODE_ENV:-development}
+      NODE_OPTIONS: --max-old-space-size=768
     volumes:
       - ./main_frontend:/app
       - /app/node_modules

@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@shared/auth";
-import type { TicketListParams, TicketListApiResponse } from "./types";
-import { fetchTickets } from "./api";
+import type { Ticket, TicketListParams, TicketListApiResponse } from "./types";
+import { fetchTickets, fetchTicketById } from "./api";
 
 export const ticketsQueryKeys = {
   all: ["tickets"] as const,
   list: (params: TicketListParams) => ["tickets", "list", params] as const,
+  byId: (orgId: string, ticketId: number) => ["tickets", "byId", orgId, ticketId] as const,
 };
 
 export function useTickets(params: TicketListParams) {
@@ -23,6 +24,21 @@ export function useTickets(params: TicketListParams) {
       return fetchTickets(params, jwtToken);
     },
     keepPreviousData: true,
+  });
+}
+
+export function useTicketById(orgId: string | null, ticketId: number | null) {
+  const { jwtToken, jwtLoading } = useAuth();
+
+  return useQuery<{ ticket: Ticket | null }>({
+    queryKey: ticketsQueryKeys.byId(orgId ?? "", ticketId ?? 0),
+    enabled: !!jwtToken && !jwtLoading && !!orgId && !!ticketId,
+    queryFn: () => {
+      if (!jwtToken || !orgId || !ticketId) {
+        return Promise.reject(new Error("Missing required params"));
+      }
+      return fetchTicketById(orgId, ticketId, jwtToken);
+    },
   });
 }
 

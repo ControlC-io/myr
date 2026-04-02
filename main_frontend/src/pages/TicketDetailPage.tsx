@@ -1,6 +1,9 @@
+import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import type { Ticket, TicketIntervention } from "../features/tickets/types";
+import type { Ticket, TicketIntervention, TicketListApiResponse } from "../features/tickets/types";
+import { ticketsQueryKeys } from "../features/tickets/hooks";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -57,10 +60,10 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 const statusColors: Record<string, string> = {
-  open:        "bg-blue-500/10  text-blue-600  dark:bg-blue-500/20  dark:text-blue-300  border border-blue-500/20",
-  in_progress: "bg-secondary/10 text-secondary dark:bg-secondary/20 dark:text-secondary border border-secondary/20",
-  resolved:    "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border border-green-500/20",
-  closed:      "bg-primary/10   text-textSecondary dark:bg-white/10 dark:text-white/60   border border-primary/20",
+  open:        "bg-blue-500  text-white",
+  in_progress: "bg-secondary text-white",
+  resolved:    "bg-green-600 text-white",
+  closed:      "bg-gray-500  text-white",
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -84,32 +87,32 @@ function InfoGrid({ ticket, t }: { ticket: Ticket; t: (k: string) => string }) {
   ];
 
   return (
-    <div className="divide-y divide-border/10 dark:divide-border-dark/10">
+    <div className="divide-y divide-border/40 dark:divide-border-dark/50">
       {rows.map(([labelA, valA, labelB, valB], idx) => (
         <div key={idx} className="grid grid-cols-2">
-          <div className="px-6 py-4 border-r border-border/10 dark:border-border-dark/10">
-            <p className="text-xs font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wide mb-1">
+          <div className="px-6 py-4 border-r border-border/40 dark:border-border-dark/50">
+            <p className="text-[10px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest mb-1.5">
               {labelA}
             </p>
-            <p className="text-sm text-textPrimary dark:text-textPrimary-dark">
+            <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
               {valA ?? "—"}
             </p>
           </div>
           <div className="px-6 py-4">
-            <p className="text-xs font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wide mb-1">
+            <p className="text-[10px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest mb-1.5">
               {labelB}
             </p>
-            <p className="text-sm text-textPrimary dark:text-textPrimary-dark">
+            <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
               {valB ?? "—"}
             </p>
           </div>
         </div>
       ))}
       <div className="px-6 py-4">
-        <p className="text-xs font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wide mb-1">
+        <p className="text-[10px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest mb-1.5">
           {t("tickets.detail.project")}
         </p>
-        <p className="text-sm text-textPrimary dark:text-textPrimary-dark">
+        <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
           {ticket.tical_numero_prj ?? "—"}
         </p>
       </div>
@@ -128,48 +131,48 @@ function InterventionCard({
 
   return (
     <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-border/10 dark:border-border-dark/10">
+      <div className="px-5 py-4 border-b border-border/40 dark:border-border-dark/50">
         <h2 className="text-base font-bold text-textPrimary dark:text-textPrimary-dark">
           {t("tickets.detail.interventionPlanning")}
         </h2>
       </div>
 
-      <div className="divide-y divide-border/10 dark:divide-border-dark/10">
-        <div className="px-5 py-4">
-          <span className="text-xs font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wide">
-            {t("tickets.detail.date")}
+      <div className="divide-y divide-border/40 dark:divide-border-dark/50">
+        <div className="px-5 py-3 flex items-baseline gap-2">
+          <span className="text-[10px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest shrink-0">
+            {t("tickets.detail.date")} :
           </span>
-          <p className="mt-1 text-sm text-textPrimary dark:text-textPrimary-dark">
+          <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
             {formatDateTime(intervention.date_begin)}
           </p>
         </div>
 
-        <div className="px-5 py-4">
-          <span className="text-xs font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wide">
-            {t("tickets.detail.hoursWorked")}
+        <div className="px-5 py-3 flex items-baseline gap-2">
+          <span className="text-[10px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest shrink-0">
+            {t("tickets.detail.hoursWorked")} :
           </span>
-          <p className="mt-1 text-sm text-textPrimary dark:text-textPrimary-dark">
+          <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark">
             {intervention.preste ?? "—"}
           </p>
         </div>
 
         {intervention.desc_facturation && (
-          <div className="px-5 py-4">
-            <span className="text-xs font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-wide">
+          <div className="px-5 py-3">
+            <span className="text-[10px] font-bold text-textSecondary dark:text-textSecondary-dark uppercase tracking-widest block mb-1.5">
               {t("tickets.detail.actionsTaken")}
             </span>
-            <p className="mt-1 text-sm text-textPrimary dark:text-textPrimary-dark whitespace-pre-wrap break-words">
+            <p className="text-sm font-medium text-textPrimary dark:text-textPrimary-dark whitespace-pre-wrap break-words">
               {intervention.desc_facturation}
             </p>
           </div>
         )}
 
-        <div className="px-5 py-4">
+        <div className="px-5 py-3">
           <span
             className={`inline-flex items-center justify-center w-full px-3 py-2 rounded text-xs font-bold tracking-wide border ${
               isNonBillable
                 ? "bg-primary/5 text-textSecondary dark:bg-white/5 dark:text-white/60 border-primary/20"
-                : "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border-green-500/20"
+                : "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border-green-500/30"
             }`}
           >
             {isNonBillable
@@ -192,7 +195,36 @@ const TicketDetailPage = () => {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
   const { state } = useLocation() as { state: LocationState | null };
-  const ticket = state?.ticket;
+  const navTicket = state?.ticket;
+  const queryClient = useQueryClient();
+
+  // Search the React Query cache for the full ticket object (populated when the user visited the Tickets page).
+  // This lets us show complete ticket metadata even when navigating here from Interventions,
+  // which only carries a minimal ticket stub in navigation state.
+  const cachedTicket = useMemo(() => {
+    if (!navTicket?.id) return null;
+    const allCached = queryClient.getQueriesData<TicketListApiResponse>({
+      queryKey: ticketsQueryKeys.all,
+    });
+    for (const [, queryData] of allCached) {
+      const found = queryData?.data?.find((t) => t.id === navTicket.id);
+      if (found) return found;
+    }
+    return null;
+  }, [queryClient, navTicket?.id]);
+
+  // Prefer the cached full ticket; keep the intervention array from the navigation state
+  // when it was explicitly set (e.g. from Interventions page).
+  const ticket = useMemo((): Ticket | undefined => {
+    if (!navTicket) return undefined;
+    if (!cachedTicket) return navTicket;
+    return {
+      ...cachedTicket,
+      interventions: navTicket.interventions?.length
+        ? navTicket.interventions
+        : (cachedTicket.interventions ?? []),
+    };
+  }, [navTicket, cachedTicket]);
 
   if (!ticket) {
     return (
@@ -234,10 +266,10 @@ const TicketDetailPage = () => {
           <div className="flex-1 min-w-0 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
 
             {/* Header */}
-            <div className="px-6 py-5 flex flex-wrap items-start gap-3 border-b border-border/10 dark:border-border-dark/10">
+            <div className="px-6 py-5 flex flex-wrap items-start gap-3 border-b border-border/40 dark:border-border-dark/50">
               <span
-                className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-tight ${
-                  statusColors[statusKey] ?? "bg-primary/10 text-textSecondary border border-primary/20"
+                className={`shrink-0 inline-flex items-center px-3 py-1 rounded-xl rounded-tl-none text-xs font-semibold ${
+                  statusColors[statusKey] ?? "bg-secondary text-white"
                 }`}
               >
                 {ticket.status ?? "Unknown"}
@@ -269,7 +301,7 @@ const TicketDetailPage = () => {
         {/* Bottom: initial request */}
         {ticket.content && (
           <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark card--square-tl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-border/10 dark:border-border-dark/10">
+            <div className="px-6 py-4 border-b border-border/40 dark:border-border-dark/50">
               <h2 className="text-base font-bold text-textPrimary dark:text-textPrimary-dark">
                 {t("tickets.detail.initialRequest")}
               </h2>

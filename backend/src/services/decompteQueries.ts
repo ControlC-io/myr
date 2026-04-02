@@ -70,12 +70,38 @@ export interface InterventionsQueryParams {
 
 /**
  * Builds a GraphQL query for upcoming interventions scoped to a client.
- * dateBegin must be in the form ">YYYY-MM-DD" (e.g. ">2026-03-18").
+ * Returns only the total count. dateBegin must be in the form ">YYYY-MM-DD".
  */
 export function buildInterventionsQuery(params: InterventionsQueryParams): string {
   const id = validateSupplierId(params.supplierId);
   const sanitized = params.dateBegin.replace(/[^><=\d-]/g, '');
   return `{ ticalIntervention(date_begin: "${sanitized}", ticket_client_id: ${id}) { total } }`;
+}
+
+export interface InterventionDataQueryParams {
+  supplierId: string;
+  dateBegin: string;
+  pageSize: number;
+  paginPage: number;
+}
+
+/**
+ * Parameterised GraphQL query string for paginated intervention data.
+ * Ordered by date_begin ascending. Supports paginPage and paginLimit.
+ */
+export function buildInterventionDataQuery(): string {
+  return `query ($currentDate: String!, $currentCustomerID: Int!, $pageSize: Int!, $paginPage: Int!) { ticalIntervention(date_begin: $currentDate, ticket_client_id: $currentCustomerID, orderByAsc: "date_begin", paginLimit: $pageSize, paginPage: $paginPage) { data { date_begin date_end desc_facturation heure_precise id id_tracking non_facturable preste } } }`;
+}
+
+export function buildInterventionDataVariables(params: InterventionDataQueryParams): Record<string, unknown> {
+  const id = validateSupplierId(params.supplierId);
+  const sanitized = params.dateBegin.replace(/[^><=\d-]/g, '');
+  return {
+    currentDate: sanitized,
+    currentCustomerID: id,
+    pageSize: Math.max(1, Math.floor(params.pageSize)),
+    paginPage: Math.max(1, Math.floor(params.paginPage)),
+  };
 }
 
 /**
@@ -102,6 +128,43 @@ export function buildContactSupplierQuery(email: string): string {
     throw Object.assign(new Error('Invalid email address'), { statusCode: 400 });
   }
   return `query { contactSupplier(contactEmail: "${sanitized}", is_deleted: false) { total } }`;
+}
+
+/**
+ * Builds a GraphQL query to fetch a single ticket by its ID, scoped to a supplier.
+ */
+export function buildTicketByIdQuery(supplierId: string, ticketId: number): string {
+  const sid = validateSupplierId(supplierId);
+  const tid = Math.floor(ticketId);
+  return `{
+    ticket(
+      suppliers_id_assign: ${sid},
+      id: ${tid}
+    ) {
+      data {
+        solvedate
+        content
+        date
+        id
+        name
+        status
+        intervention_date
+        is_cyber_incident
+        priority_v2
+        tical_numero_prj
+        ticketcategories { name }
+        user_assign { realname firstname }
+        group_assign { name }
+        interventions {
+          non_facturable
+          desc_facturation
+          preste
+          date_begin
+        }
+        supplier { id }
+      }
+    }
+  }`;
 }
 
 export function buildTicketsQuery(params: TicketsQueryParams): string {

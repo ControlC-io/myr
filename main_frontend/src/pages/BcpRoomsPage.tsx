@@ -19,9 +19,9 @@ const statusColors: Record<number, string> = {
 };
 
 const statusEventColors: Record<number, string> = {
-  4: "bg-green-500/15 text-green-700 dark:bg-green-500/20 dark:text-green-300",
-  3: "bg-blue-500/15 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
-  2: "bg-yellow-500/15 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300",
+  4: "bg-green-500/15 text-green-700 dark:bg-green-600/80 dark:text-white",
+  3: "bg-blue-500/15 text-blue-700 dark:bg-blue-600/80 dark:text-white",
+  2: "bg-yellow-500/15 text-yellow-700 dark:bg-yellow-600/80 dark:text-white",
 };
 
 function formatDate(dt: string): string {
@@ -37,8 +37,12 @@ function formatTime(dt: string): string {
 }
 
 function toCalendarDate(dt: string): string {
-  // "2026-03-17 13:00:00" → "2026-03-17"
-  return dt.split(" ")[0];
+  return dt.split(" ")[0] ?? "";
+}
+
+function toCalendarTime(dt: string): string | undefined {
+  const timePart = dt.split(" ")[1];
+  return timePart ? timePart.slice(0, 5) : undefined;
 }
 
 function getRoomLabel(b: BcpBooking): string {
@@ -81,7 +85,8 @@ const BcpRoomsPage = () => {
       id: b.id,
       date: toCalendarDate(b.start_datetime),
       label: b.customer_name ?? `#${b.id}`,
-      colorClass: statusEventColors[b.booking_status] ?? "bg-secondary/15 text-secondary",
+      time: toCalendarTime(b.start_datetime),
+      colorClass: statusEventColors[b.booking_status] ?? "bg-secondary/15 text-secondary dark:bg-secondary/80 dark:text-white",
     })),
     [sortedBookings]
   );

@@ -18,7 +18,7 @@ import { MemberRole } from '@prisma/client';
 import { checkOrganizationAccess } from '../middleware/auth';
 import { createAuditLog } from '../middleware/auditLog';
 import { proxyGraphQL, proxyRestGet, proxyRestPost, proxyRestPostJson, ProxyError } from '../services/proxyService';
-import { buildSupplierQuery, buildTicketsQuery, buildInterventionsQuery, validateSupplierId } from '../services/decompteQueries';
+import { buildSupplierQuery, buildTicketsQuery, buildTicketByIdQuery, buildInterventionsQuery, buildInterventionDataQuery, buildInterventionDataVariables, validateSupplierId } from '../services/decompteQueries';
 
 const router = express.Router();
 
@@ -408,6 +408,62 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/orgs/:orgId/proxy/tickets/:ticketId
+// Fetches a single ticket by ID from the external system.
+// Minimum role: VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/:orgId/proxy/tickets/:ticketId',
+  checkOrganizationAccess(MemberRole.VIEWER),
+  async (req: Request, res: Response) => {
+    try {
+      const { orgId, ticketId } = req.params;
+
+      const ticketIdNum = parseInt(ticketId, 10);
+      if (isNaN(ticketIdNum) || ticketIdNum <= 0) {
+        res.status(400).json({ error: 'Invalid ticket ID' });
+        return;
+      }
+
+      const org = await prisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) { res.status(404).json({ error: 'Organization not found' }); return; }
+      if (!org.externalReferenceId) { res.status(403).json({ error: 'Organization has no linked supplier' }); return; }
+
+      let query: string;
+      try {
+        query = buildTicketByIdQuery(org.externalReferenceId, ticketIdNum);
+      } catch {
+        res.status(403).json({ error: 'Organization has no valid supplier reference' });
+        return;
+      }
+
+      const externalJson = await proxyGraphQL(query) as { data?: { ticket?: { data?: unknown[] } } };
+
+      const ticketList = externalJson.data?.ticket?.data ?? [];
+      const ticket = ticketList.find((t: unknown) => (t as { id?: number }).id === ticketIdNum) ?? ticketList[0] ?? null;
+
+      await createAuditLog(
+        'PROXY_API_CALL',
+        req.user!.userId,
+        { orgId, externalReferenceId: org.externalReferenceId, endpoint: `tickets/${ticketId}` },
+        orgId,
+      );
+
+      res.json({ ticket });
+    } catch (error: unknown) {
+      console.error('Proxy ticket by ID request failed:', error);
+      const proxyErr = asProxyError(error);
+      const remoteStatus = proxyErr.response?.status;
+      res.status(remoteStatus ? 502 : 500).json({
+        error: 'Proxy request failed',
+        details: proxyErr.response?.data ?? proxyErr.message,
+        remoteStatus,
+      });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/orgs/:orgId/proxy/tickets/create
 // Proxies a REST request to open a new ticket on the external system.
 // Minimum role: VIEWER
@@ -502,17 +558,33 @@ router.post(
       if (!org.externalReferenceId) { res.status(403).json({ error: 'Organization has no linked supplier' }); return; }
 
       const today = new Date().toISOString().split('T')[0];
-      const { dateBegin = `>${today}` } = req.body as { dateBegin?: string };
+      const {
+        dateBegin = `>${today}`,
+        paginPage = 1,
+        pageSize = 10,
+      } = req.body as { dateBegin?: string; paginPage?: number; pageSize?: number };
 
-      let query: string;
+      let totalQuery: string;
       try {
-        query = buildInterventionsQuery({ supplierId: org.externalReferenceId, dateBegin });
+        totalQuery = buildInterventionsQuery({ supplierId: org.externalReferenceId, dateBegin });
       } catch {
         res.status(403).json({ error: 'Organization has no valid supplier reference' });
         return;
       }
 
-      const externalJson = await proxyGraphQL(query) as { data?: { ticalIntervention?: unknown } };
+      // First call: get total count
+      const totalJson = await proxyGraphQL(totalQuery) as { data?: { ticalIntervention?: { total?: number } } };
+      const total = totalJson.data?.ticalIntervention?.total ?? 0;
+
+      // Second call: fetch the requested page of data
+      let items: unknown[] = [];
+      if (total > 0) {
+        const dataJson = await proxyGraphQL(
+          buildInterventionDataQuery(),
+          buildInterventionDataVariables({ supplierId: org.externalReferenceId, dateBegin, pageSize, paginPage }),
+        ) as { data?: { ticalIntervention?: { data?: unknown[] } } };
+        items = dataJson.data?.ticalIntervention?.data ?? [];
+      }
 
       await createAuditLog(
         'PROXY_API_CALL',
@@ -521,8 +593,7 @@ router.post(
         orgId,
       );
 
-      const intervention = externalJson.data?.ticalIntervention ?? null;
-      res.json({ intervention });
+      res.json({ intervention: { total, data: items, paginPage, pageSize } });
     } catch (error: unknown) {
       console.error('Proxy interventions request failed:', error);
       const proxyErr = asProxyError(error);

@@ -101,7 +101,7 @@ export async function proxyRestGet(path: string): Promise<unknown> {
   return JSON.parse(text);
 }
 
-export async function proxyGraphQL(query: string): Promise<unknown> {
+export async function proxyGraphQL(query: string, variables?: Record<string, unknown>): Promise<unknown> {
   const apiUrl = process.env.DECOMPTE_API_BASE;
   const apiKey = process.env.DECOMPTE_API_KEY;
   const apiToken = process.env.DECOMPTE_API_BEARER;
@@ -120,7 +120,7 @@ export async function proxyGraphQL(query: string): Promise<unknown> {
         'x-api-key': apiKey,
         'Authorization': `Bearer ${apiToken}`,
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(variables ? { query, variables } : { query }),
     });
 
     const text = await response.text();
