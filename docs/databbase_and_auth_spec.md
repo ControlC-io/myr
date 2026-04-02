@@ -165,7 +165,7 @@ The external API proxy uses two dedicated services (native `fetch`, no axios):
   - `buildSupplierQuery(supplierId)` — full supplier data for the proxy routes.
   - `buildTicketsQuery(...)` — paginated ticket list.
   - `buildContactSupplierQuery(email)` — pre-registration check; returns `{ total }` only.
-  - `buildContactSupplierDataQuery(email)` — full contact+supplier+roles data; used by `/api/user/supplier-context`.
+  - `buildContactSupplierDataQuery(email)` — full contact+supplier+roles data; used by `/api/user/supplier-context`. Returns `supplier { id name raisonsociale }` so the frontend can display the company name in the selector without an extra API call.
 
 Example tenant-aware routes (implemented in `backend/src/routes/organizationResources.ts`):
 
@@ -266,5 +266,13 @@ The active organization is managed client-side by the `SupplierContext` (`main_f
 * On login / app load, `GET /api/user/supplier-context` returns the user's companies from the external API.
 * `selectedSupplierId` is stored in `localStorage` (key `myr_selected_supplier`) and defaults to the first company.
 * All pages use `useOrg()` → `selectedSupplierId` as the `:orgId` for proxy calls. Changing the selected company automatically triggers React Query refetches.
-* If the user has more than one company, a dropdown selector appears in the Navbar.
+* If the user has more than one company, a dropdown selector appears in the Navbar showing the company's `raisonsociale` (or `name`, falling back to the raw supplier ID). These fields come from the `supplier-context` response — no separate API call is needed.
 * The backend has no concept of "active org" in the session — `orgId` is always passed in the URL per request.
+* The `SupplierCompany` shape (both in `main_frontend/src/context/SupplierContext.tsx` and `backend/src/routes/userContext.ts`) is:
+  ```ts
+  interface SupplierCompany {
+    contact: { email: string; id: number };
+    supplier: { id: number; name: string; raisonsociale: string };
+    roles: Array<{ contactroles: { name: string } }>;
+  }
+  ```
