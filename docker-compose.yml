@@ -73,10 +73,11 @@ services:
     container_name: main_frontend_app
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      NODE_OPTIONS: --max-old-space-size=768
     volumes:
       - ./main_frontend:/app
-      - /app/node_modules
+      # Named volume keeps node_modules inside the Docker VM's fast ext4 filesystem,
+      # avoiding the slow Windows→WSL2 bind-mount path for thousands of small files.
+      - main_frontend_nm:/app/node_modules
       - ./shared:/app/shared
     networks:
       - dmz_net
@@ -93,7 +94,7 @@ services:
       VITE_API_URL: ""
     volumes:
       - ./admin_frontend:/app
-      - /app/node_modules
+      - admin_frontend_nm:/app/node_modules
       - ./shared:/app/shared
     networks:
       - dmz_net
@@ -139,3 +140,5 @@ services:
 
 volumes:
   postgres_data:
+  main_frontend_nm:
+  admin_frontend_nm:

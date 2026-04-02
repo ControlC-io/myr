@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { Ticket, TicketIntervention, TicketListApiResponse } from "../features/tickets/types";
-import { ticketsQueryKeys } from "../features/tickets/hooks";
+import { ticketsQueryKeys, useTickets } from "../features/tickets/hooks";
+import { useOrg } from "../hooks/useOrg";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -191,11 +192,16 @@ interface LocationState {
   ticket?: Ticket;
 }
 
+function isLikelyStubTicket(ticket: Ticket): boolean {
+  return !ticket.status && !ticket.date && !ticket.priority_v2 && !ticket.content;
+}
+
 const TicketDetailPage = () => {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
   const { state } = useLocation() as { state: LocationState | null };
   const navTicket = state?.ticket;
+  const orgId = useOrg();
   const queryClient = useQueryClient();
 
   // Search the React Query cache for the full ticket object (populated when the user visited the Tickets page).
@@ -213,18 +219,35 @@ const TicketDetailPage = () => {
     return null;
   }, [queryClient, navTicket?.id]);
 
+  const shouldFetchFallback = Boolean(
+    navTicket?.id && isLikelyStubTicket(navTicket) && !cachedTicket && orgId,
+  );
+
+  const { data: fallbackTickets } = useTickets({
+    orgId: shouldFetchFallback ? (orgId ?? "") : "",
+    paginLimit: 100,
+    paginPage: 1,
+    orderByDesc: "date",
+  });
+
+  const fallbackTicket = useMemo(() => {
+    if (!shouldFetchFallback || !navTicket?.id) return null;
+    return fallbackTickets?.data.find((item) => item.id === navTicket.id) ?? null;
+  }, [shouldFetchFallback, navTicket?.id, fallbackTickets]);
+
   // Prefer the cached full ticket; keep the intervention array from the navigation state
   // when it was explicitly set (e.g. from Interventions page).
   const ticket = useMemo((): Ticket | undefined => {
     if (!navTicket) return undefined;
-    if (!cachedTicket) return navTicket;
+    const source = cachedTicket ?? fallbackTicket;
+    if (!source) return navTicket;
     return {
-      ...cachedTicket,
+      ...source,
       interventions: navTicket.interventions?.length
         ? navTicket.interventions
-        : (cachedTicket.interventions ?? []),
+        : (source.interventions ?? []),
     };
-  }, [navTicket, cachedTicket]);
+  }, [navTicket, cachedTicket, fallbackTicket]);
 
   if (!ticket) {
     return (
